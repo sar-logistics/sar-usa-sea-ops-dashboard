@@ -3625,7 +3625,7 @@ function renderJobUnlinked() {
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + 1;
   }
   flaggedDD.forEach(r => {
-    addFlagged(r.jobBranch || r.branch || '(No Branch)', r.operator || r.jobOwner || '(Unknown)', getColKey(r, view) || 'other');
+    addFlagged(r.jobBranch || r.branch || r.location || '(No Branch)', r.operator || r.jobOwner || '(Unknown)', getColKey(r, view) || 'other');
   });
 
   // Grand flagged totals per col
@@ -3664,7 +3664,7 @@ function renderJobUnlinked() {
   sortedBranches.forEach((br, bi) => {
     const bKey     = 'b' + bi;
     const owMap    = flaggedMap[br] || {};
-    const brFlagRecs = flaggedDD.filter(r => (r.jobBranch||r.branch||'(No Branch)') === br);
+    const brFlagRecs = flaggedDD.filter(r => (r.jobBranch||r.branch|| r.location || '(No Branch)') === br);
     const brFlId   = dvReg(brFlagRecs);
     const safeBr   = br.replace(/'/g, "\\'");
 
@@ -3740,7 +3740,7 @@ function renderTotalJobs() {
   // Build totalMap: branch → owner → col counts
   const totalMap = {};
   filtered.forEach(r => {
-    const br = r.jobBranch || r.branch   || '(No Branch)';
+    const br = r.jobBranch || r.branch   || r.location || '(No Branch)';
     const ow = r.operator  || r.jobOwner || '(Unknown)';
     const ck = getColKey(r, view) || 'other';
     if (!totalMap[br]) totalMap[br] = {};
@@ -3780,7 +3780,7 @@ function renderTotalJobs() {
   Object.keys(totalMap).sort().forEach((br, bi) => {
     const bKey  = 'tj' + bi;
     const owMap = totalMap[br] || {};
-    const brRecs = filtered.filter(r => (r.jobBranch || r.branch || '(No Branch)') === br);
+    const brRecs = filtered.filter(r => (r.jobBranch || r.branch || r.location || '(No Branch)') === br);
     const brId   = dvReg(brRecs);
     const safeBr = br.replace(/'/g, "\\'");
     const brTo   = {}; cols.forEach(c => { brTo[c.key] = 0; }); let brGrand = 0;
@@ -3854,7 +3854,7 @@ function renderOpenJobs() {
   // Build flaggedMap only
   const flaggedMap = {};
   flaggedDD.forEach(r => {
-    const br=r.jobBranch||r.branch||'(No Branch)', ow=r.operator||r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
+    const br=r.jobBranch||r.branch|| r.location || '(No Branch)', ow=r.operator||r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
     if (!flaggedMap[br]) flaggedMap[br]={};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow]={};
     flaggedMap[br][ow][ck]=(flaggedMap[br][ow][ck]||0)+1;
@@ -3878,7 +3878,7 @@ function renderOpenJobs() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi)=>{
     const bKey='oj'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let bFG=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); bFG+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -3940,7 +3940,7 @@ function renderOLDelay() {
   // Build flaggedMap only
   const flaggedMap = {};
   flaggedDD.forEach(r => {
-    const br=r.jobBranch||r.branch||'(No Branch)', ow=r.operator||r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
+    const br=r.jobBranch||r.branch|| r.location || '(No Branch)', ow=r.operator||r.jobOwner||'(Unknown)', ck=getColKey(r,view)||'other';
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck]||0)+1;
@@ -3966,7 +3966,7 @@ function renderOLDelay() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi) => {
     const bKey='ol'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -4071,7 +4071,7 @@ function renderAMS() {
   // Build flaggedMap only
   const flaggedMap = {};
   function addMap(map, br, ow, ck) { if(!map[br])map[br]={}; if(!map[br][ow])map[br][ow]={}; map[br][ow][ck]=(map[br][ow][ck]||0)+1; }
-  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch||r.branch||'(No Branch)', r.operator||r.jobOwner||'(Unknown)', getColKey(r,view)||'other'));
+  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch||r.branch|| r.location || '(No Branch)', r.operator||r.jobOwner||'(Unknown)', getColKey(r,view)||'other'));
 
   const gtFl={}; cols.forEach(c=>{gtFl[c.key]=0;}); let gtFlGrand=0;
   const colKeyFn = r => getColKey(r,view)||'other';
@@ -4091,7 +4091,7 @@ function renderAMS() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi)=>{
     const bKey='ams'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let bFG=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); bFG+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -4151,7 +4151,7 @@ function renderInvDelay() {
   // Build flaggedMap only
   const flaggedMap = {};
   function addMap(map, br, ow, ck) { if(!map[br])map[br]={}; if(!map[br][ow])map[br][ow]={}; map[br][ow][ck]=(map[br][ow][ck]||0)+1; }
-  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch||r.branch||'(No Branch)', r.operator||r.jobOwner||'(Unknown)', getColKey(r,view)||'other'));
+  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch||r.branch|| r.location || '(No Branch)', r.operator||r.jobOwner||'(Unknown)', getColKey(r,view)||'other'));
 
   const gtFl={}; cols.forEach(c=>{gtFl[c.key]=0;}); let gtFlGrand=0;
   const colKeyFn = r => getColKey(r,view)||'other';
@@ -4171,7 +4171,7 @@ function renderInvDelay() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi)=>{
     const bKey='id'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let bFG=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); bFG+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -4219,7 +4219,7 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
   const flaggedMap = {};
   // Use SRR records for branch/owner structure, WIP lines for date bucketing
   flaggedDD.forEach(r => {
-    const br = r.jobBranch || r.branch || '(No Branch)';
+    const br = r.jobBranch || r.branch || r.location || '(No Branch)';
     const ow = r.operator || r.jobOwner || '(Unknown)';
     // Use WIP lines for this shipment to get the date key
     const wipLines = wipByShipment[r.shipmentId] || [];
@@ -4259,7 +4259,7 @@ function _renderSRRFlaggedWip(pageId, s, flagLabel, label, view, cols, filteredD
 
   Object.keys(flaggedMap).sort().forEach((br, bi) => {
     const bKey = s + bi, owMap = flaggedMap[br] || {};
-    const brFlagRecs = flaggedDD.filter(r => (r.jobBranch || r.branch || '(No Branch)') === br);
+    const brFlagRecs = flaggedDD.filter(r => (r.jobBranch || r.branch || r.location || '(No Branch)') === br);
     const brWipRecs  = brFlagRecs.flatMap(r => (wipByShipment[r.shipmentId] || []));
     const brWipId    = dvReg(brWipRecs);
     const safeBr = br.replace(/'/g, "\'");
@@ -4430,7 +4430,7 @@ function _renderJPAFlaggedReport(pageId, s, flagLabel, label, view, cols, filter
   const flaggedMap = {};
   const colKeyFn = r => getColKeyJPA(r, view) || 'other';
   flaggedDD.forEach(r => {
-    const br = r.jobBranch||r.branch||'(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
+    const br = r.jobBranch||r.branch|| r.location || '(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + 1;
@@ -4452,7 +4452,7 @@ function _renderJPAFlaggedReport(pageId, s, flagLabel, label, view, cols, filter
 
   Object.keys(flaggedMap).sort().forEach((br, bi) => {
     const bKey = s + bi, owMap = flaggedMap[br] || {};
-    const brFlagRecs = flaggedDD.filter(r => (r.jobBranch||r.branch||'(No Branch)') === br);
+    const brFlagRecs = flaggedDD.filter(r => (r.jobBranch||r.branch|| r.location || '(No Branch)') === br);
     const brFlId = dvReg(brFlagRecs), safeBr = br.replace(/'/g, "\\'");
     const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; }); let brFlGrand = 0;
     Object.values(owMap).forEach(oc => { cols.forEach(c => { brFl[c.key] += (oc[c.key]||0); }); brFlGrand += Object.values(oc).reduce((a,b) => a+b, 0); });
@@ -4513,7 +4513,7 @@ function renderLowProfit() {
   // Build flaggedMap only
   const flaggedMap = {};
   function addMap(map, br, ow, ck) { if(!map[br])map[br]={}; if(!map[br][ow])map[br][ow]={}; map[br][ow][ck]=(map[br][ow][ck]||0)+1; }
-  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch||'(No Branch)', r.operator||'(Unknown)', getColKey(r,view)||'other'));
+  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch|| r.location || '(No Branch)', r.operator||'(Unknown)', getColKey(r,view)||'other'));
 
   const gtFl={}; cols.forEach(c=>{gtFl[c.key]=0;}); let gtFlGrand=0;
   const colKeyFn = r => getColKey(r,view)||'other';
@@ -4537,7 +4537,7 @@ function renderLowProfit() {
 
   Object.keys(flaggedMap).sort().forEach((br,bi) => {
     const bKey='lp'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -4834,7 +4834,7 @@ function populateFilters(pageId, data) {
   const hasOthers = data.some(r => !r.zone || r.zone === 'Others');
   const zones = hasOthers ? [...zonesSet, 'Others'] : zonesSet;
 
-  const branches = [...new Set(data.map(r => r.jobBranch || r.branch).filter(Boolean))].sort();
+  const branches = [...new Set(data.map(r => r.jobBranch || r.branch || r.location).filter(Boolean))].sort();
   const owners   = [...new Set(data.map(r => r.jobOwner).filter(Boolean))].sort();
 
   buildMsDropdown('zone-'   + pageId, zones);
@@ -4859,7 +4859,7 @@ function applyDropdownFilters(data, pageId) {
   return data.filter(r => {
     const rZone = r.zone || 'Others';
     if (!zoneAll   && !zoneState.has(rZone))             return false;
-    if (!branchAll && !branchState.has(r.jobBranch || r.branch || '')) return false;
+    if (!branchAll && !branchState.has(r.jobBranch || r.branch || r.location || '')) return false;
     if (!ownerAll  && !ownerState.has(r.jobOwner || '')) return false;
     return true;
   });
@@ -6427,7 +6427,7 @@ async function loadAdminPanel() {
   const users = allUsers || [];
 
   const allZones    = [...new Set(rawSRR.map(r => r.zone).filter(Boolean))].sort();
-  const allBranches = [...new Set(rawSRR.map(r => r.jobBranch || r.branch).filter(Boolean))].sort();
+  const allBranches = [...new Set(rawSRR.map(r => r.jobBranch || r.branch || r.location).filter(Boolean))].sort();
 
   window._adminUsers    = users;
   window._adminZones    = allZones;
@@ -6852,7 +6852,7 @@ function _renderPerf(pageId, title, isOnTime, excludeFn, notDueYetFn) {
   // Build branch → owner map
   const brMap = {};
   data.forEach(r => {
-    const br = r.branch || '(No Branch)', ow = r.jobOwner || '(Unknown)';
+    const br = r.branch || r.location || '(No Branch)', ow = r.jobOwner || '(Unknown)';
     if (!brMap[br]) brMap[br] = {};
     if (!brMap[br][ow]) brMap[br][ow] = { total: 0, onTime: 0, breach: 0, recs: [] };
     brMap[br][ow].total++;
@@ -7100,7 +7100,7 @@ function _renderSRRFlagged(pageId, s, flagLabel, label, view, cols, filteredDD, 
   const flaggedMap = {};
   const colKeyFn = r => getColKey(r, view) || 'other';
   flaggedDD.forEach(r => {
-    const br = r.jobBranch||r.branch||'(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
+    const br = r.jobBranch||r.branch|| r.location || '(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
     flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck]||0) + 1;
@@ -7117,7 +7117,7 @@ function _renderSRRFlagged(pageId, s, flagLabel, label, view, cols, filteredDD, 
   <tr class="gt-sep"><td colspan="${cols.length+(isSingle?1:2)}"></td></tr>`;
   Object.keys(flaggedMap).sort().forEach((br,bi) => {
     const bKey=s+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch||'(No Branch)')===br);
+    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
     const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
     const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
     Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
@@ -7259,7 +7259,7 @@ function _renderMblHbl(pageId, title, mblVal, hblVal) {
   const colKeyFn = r => getColKey(r, view) || 'other';
   const totalMap = {};
   matchedDD.forEach(r => {
-    const br = r.jobBranch||r.branch||'(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
+    const br = r.jobBranch||r.branch|| r.location || '(No Branch)', ow = r.operator||r.jobOwner||'(Unknown)', ck = colKeyFn(r);
     if (!totalMap[br]) totalMap[br] = {};
     if (!totalMap[br][ow]) totalMap[br][ow] = {};
     totalMap[br][ow][ck] = (totalMap[br][ow][ck]||0) + 1;
@@ -7279,7 +7279,7 @@ function _renderMblHbl(pageId, title, mblVal, hblVal) {
   Object.keys(totalMap).sort().forEach((br, bi) => {
     const bKey = pageId.replace(/-/g,'') + bi;
     const owMap = totalMap[br]||{};
-    const brRecs = matchedDD.filter(r => (r.branch||'(No Branch)') === br);
+    const brRecs = matchedDD.filter(r => (r.branch|| r.location || '(No Branch)') === br);
     const brId = dvReg(brRecs), safeBr = br.replace(/'/g,"\\'");
     const brTo = {}; cols.forEach(c => { brTo[c.key] = 0; }); let brGrand = 0;
     Object.values(owMap).forEach(oc => { cols.forEach(c => { brTo[c.key] += (oc[c.key]||0); }); brGrand += Object.values(oc).reduce((a,b)=>a+b,0); });
