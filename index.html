@@ -2530,9 +2530,14 @@ function refreshForDirection(dir) {
 }
 
 function updateDirCounts() {
-  const isAir  = l => (l||'').toString().trim().toUpperCase().endsWith('A');
-  const isSea  = l => (l||'').toString().trim().toUpperCase().endsWith('S');
-  const isRoad = l => (l||'').toString().trim().toUpperCase().endsWith('R');
+  // USA (LogiSys/JPA schema) uses readable LOB strings like "SEA EXPORT"
+  // rather than Indonesia/Thailand's short codes (FES/FIS/FEA/FIA/FER/FIR) -
+  // detect by a space in the value, since short codes never have one. Same
+  // fix as matchesCurrentLob() - this is a separate, independent
+  // implementation of the same check, not a shared call to that function.
+  const isAir  = l => { const s=(l||'').toString().trim().toUpperCase(); return s.includes(' ') ? s.includes('AIR')  : s.endsWith('A'); };
+  const isSea  = l => { const s=(l||'').toString().trim().toUpperCase(); return s.includes(' ') ? s.includes('SEA')  : s.endsWith('S'); };
+  const isRoad = l => { const s=(l||'').toString().trim().toUpperCase(); return s.includes(' ') ? s.includes('ROAD') : s.endsWith('R'); };
   const expCount     = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'export' && (isSea(r.lob) || !r.lob)).length;
   const impCount     = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'import' && (isSea(r.lob) || !r.lob)).length;
   const airExpCount  = rawSRR.filter(r => (r.direction||'').toLowerCase() === 'export' && isAir(r.lob)).length;
