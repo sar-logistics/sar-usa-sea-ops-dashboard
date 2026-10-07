@@ -3298,7 +3298,7 @@ function getDateRange(pageId) {
       label = MONTHS[fromState.selected.month] + ' ' + fromState.selected.year + ' → ' + MONTHS[toState.selected.month] + ' ' + toState.selected.year;
     } else {
       // Auto-detect from actual data (ignore invalid pre-2000 dates)
-      const dates = allSRR.map(r => { const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+      const dates = allSRR.map(r => { if (r.jobDate !== undefined) return r.jobDate ? new Date(r.jobDate) : null; const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
       if (dates.length) {
         const minD = new Date(Math.min(...dates.map(d => d.getTime())));
         const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3333,7 +3333,7 @@ function getDateRange(pageId) {
   } else if (view === 'quarterly') {
     const qVal = Number(document.getElementById('quarter-' + pageId).value || 1);
     // Span all data so all FY columns are shown
-    const dates = allSRR.map(r => { const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+    const dates = allSRR.map(r => { if (r.jobDate !== undefined) return r.jobDate ? new Date(r.jobDate) : null; const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
     if (dates.length) {
       const minD = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -3347,7 +3347,7 @@ function getDateRange(pageId) {
     label = qNames[qVal-1];
   } else if (view === 'yearly') {
     // Auto-detect FY range from actual data
-    const dates = allSRR.map(r => { const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
+    const dates = allSRR.map(r => { if (r.jobDate !== undefined) return r.jobDate ? new Date(r.jobDate) : null; const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate); return raw ? new Date(raw) : null; }).filter(d => d && d.getFullYear() > 2000);
     if (dates.length) {
       const minD = new Date(Math.min(...dates.map(d => d.getTime())));
       const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
