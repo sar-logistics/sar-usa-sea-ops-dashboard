@@ -1831,7 +1831,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         </div>
         <div class="kpi-row">
           <div class="kpi blue"><div class="kpi-top"><i class="kpi-icon-sm ti ti-chart-bar blue"></i><span class="kpi-lbl">Total Jobs</span></div><div class="kpi-val blue" id="kv-lp-total">—</div><div class="kpi-sub" id="kv-lp-period">All jobs in period</div></div>
-          <div class="kpi orange"><div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Job Profit is &lt; 3%</span></div><div class="kpi-val orange" id="kv-lp-flagged">—</div><div class="kpi-sub">Actual Profit / Billed Revenue &lt; 3%</div></div>
+          <div class="kpi orange"><div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Job Profit is &lt; 3%</span></div><div class="kpi-val orange" id="kv-lp-flagged">—</div><div class="kpi-sub">Margin % formula pending</div></div>
           <div class="kpi red"><div class="kpi-top"><i class="kpi-icon-sm ti ti-percentage red"></i><span class="kpi-lbl">% of such jobs</span></div><div class="kpi-val red" id="kv-lp-pct">—</div><div class="kpi-sub" id="kv-lp-pct-sub">% of total jobs</div></div>
         </div>
         <div class="sec-hd">
@@ -4485,30 +4485,28 @@ function renderLowProfit() {
 
   populateFilters(pageId, filtered);
   const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
-  const flaggedDD  = filteredDD.filter(r => {
-    // USA (LogiSys/JPA schema) has a real "Margin %" column pushed as r.margin
-    const margin = r.jobDate !== undefined
-      ? r.margin
-      : (r.derivedMargin !== undefined ? r.derivedMargin : r.marginPct);
-    if (margin === undefined || margin === null) return false;
-    return margin < 3;
-  });
+
+  // USA (LogiSys/JPA schema) has no stored Margin % column, and how to derive
+  // one (which fields, what formula) is still undecided - left pending per
+  // request rather than silently computing something that looks like a real
+  // "0 flagged, 100% healthy" result when it isn't actually calculated at all.
+  const flaggedDD  = [];
 
   const totalJobs    = filteredDD.length;
   const flaggedCount = flaggedDD.length;
-  const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
 
-  // Scorecards — clickable
+  // Scorecards — Total Jobs still works (no margin needed for that count);
+  // the margin-dependent flagged/pct scorecards show a clear pending state
   const kTotal = document.getElementById('kv-lp-total');
   if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,DV_COLS_LOW_PROFIT); }
   const kFlagged = document.getElementById('kv-lp-flagged');
-  if (kFlagged) { kFlagged.textContent = flaggedCount.toLocaleString(); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(flaggedDD,'Job Profit < 3%',label,DV_COLS_LOW_PROFIT); }
+  if (kFlagged) { kFlagged.textContent = '—'; kFlagged.style.cursor='default'; kFlagged.onclick=null; kFlagged.title='Margin % not yet available - formula pending'; }
   const kPct = document.getElementById('kv-lp-pct');
-  if (kPct) { kPct.textContent = pct+'%'; kPct.style.cursor='pointer'; kPct.onclick=()=>openDrill(flaggedDD,'Job Profit < 3%',label,DV_COLS_LOW_PROFIT); }
+  if (kPct) { kPct.textContent = 'Pending'; kPct.style.cursor='default'; kPct.onclick=null; kPct.title='Margin % not yet available - formula pending'; }
   const kPeriod = document.getElementById('kv-lp-period'); if (kPeriod) kPeriod.textContent = label;
-  const kPctSub = document.getElementById('kv-lp-pct-sub'); if (kPctSub) kPctSub.textContent = flaggedCount+' of '+totalJobs+' jobs';
-  const sc = document.getElementById('sc-low-profit'); if (sc) sc.textContent = totalJobs.toLocaleString()+' total · '+flaggedCount.toLocaleString()+' flagged';
-  setBadge('low-profit', flaggedCount);
+  const kPctSub = document.getElementById('kv-lp-pct-sub'); if (kPctSub) kPctSub.textContent = 'Margin % formula pending';
+  const sc = document.getElementById('sc-low-profit'); if (sc) sc.textContent = totalJobs.toLocaleString()+' total · margin pending';
+  setBadge('low-profit', 0);
 
   // Build flaggedMap only
   const flaggedMap = {};
@@ -6810,11 +6808,10 @@ const SUMMARY_REPORTS = [
     title:   'Job Profit < 3%',
     color:   '#dc2626',
     okColor: '#16a34a',
-    flag:    r => {
-      const margin = r.derivedMargin !== undefined ? r.derivedMargin : r.marginPct;
-      if (margin === undefined || margin === null) return false;
-      return margin < 3;
-    },
+    // Margin % has no stored column and no agreed formula yet (left pending
+    // per request) - never flags anything rather than silently checking a
+    // field that doesn't exist and always returning a misleading "healthy" result
+    flag:    r => false,
   },
 ];
 
