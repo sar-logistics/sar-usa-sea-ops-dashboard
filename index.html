@@ -3857,6 +3857,13 @@ function renderOpenJobs() {
   ojCutoff.setDate(ojCutoff.getDate() - 7);
 
   const flaggedDD = filteredDD.filter(r => {
+    if (r.jobDate !== undefined) {
+      // USA (LogiSys/JPA schema) — Open = Operation Lock Date blank, confirmed
+      // definition. No 7-day grace period here - that's an Indonesia-specific
+      // rule not part of USA's requirement doc; SLA aging is a separate,
+      // later concern on top of this count, not baked into it.
+      return !r.operationLockDate || String(r.operationLockDate).trim() === '';
+    }
     if (['CMP','CLS'].includes((r.jobStatus||'').toUpperCase())) return false;
     const etd = r.etdDate ? new Date(r.etdDate) : null;
     return etd && etd < ojCutoff;
@@ -4515,7 +4522,10 @@ function renderLowProfit() {
   populateFilters(pageId, filtered);
   const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
   const flaggedDD  = filteredDD.filter(r => {
-    const margin = r.derivedMargin !== undefined ? r.derivedMargin : r.marginPct;
+    // USA (LogiSys/JPA schema) has a real "Margin %" column pushed as r.margin
+    const margin = r.jobDate !== undefined
+      ? r.margin
+      : (r.derivedMargin !== undefined ? r.derivedMargin : r.marginPct);
     if (margin === undefined || margin === null) return false;
     return margin < 3;
   });
