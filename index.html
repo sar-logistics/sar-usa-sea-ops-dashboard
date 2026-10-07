@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAR USA Sea Ops Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#EAF1F5;--card:#ffffff;--border:#dde6ec;
+  --navy-900:#16243D;--navy-800:#1F3A6E;--navy-700:#2C4E8C;
+  --text1:#0f172a;--text2:#64748b;--text3:#94a3b8;
+  --green:#15803d;--green-bg:#dcfce7;
+  --red:#b91c1c;--red-bg:#fee2e2;
+  --amber:#b45309;--amber-bg:#fef3c7;
+  --font:'Inter',-apple-system,sans-serif;
+  --topbar:56px;--sidebar:230px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── SIGN IN ───────────────────────────────────────────── */
+#signInPage{display:flex;align-items:center;justify-content:center;height:100vh;width:100vw;background:linear-gradient(135deg,var(--navy-900),var(--navy-800))}
+.signin-card{background:#fff;border-radius:16px;padding:48px 44px;width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.signin-logo{font-size:28px;font-weight:800;color:var(--navy-800);letter-spacing:-.02em;margin-bottom:4px}
+.signin-sub{color:var(--text2);font-size:13px;margin-bottom:32px}
+#googleBtnContainer{display:flex;justify-content:center}
+#signinLoading{color:var(--text2);font-size:13px}
+#signinError{display:none;margin-top:16px;color:var(--red);background:var(--red-bg);padding:10px 14px;border-radius:8px;font-size:12px;text-align:left}
+
+/* ── APP SHELL ─────────────────────────────────────────── */
+#appShell{display:none;flex:1;overflow:hidden;flex-direction:column}
+.topbar{height:var(--topbar);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;z-index:10}
+.topbar-logo{font-weight:800;font-size:15px;color:var(--navy-800);letter-spacing:-.01em;white-space:nowrap}
+.topbar-logo span{font-weight:400;color:var(--text2);margin-left:6px}
+.topbar-spacer{flex:1}
+.tb-user{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px;border-radius:8px}
+.tb-user:hover{background:#f1f5f9}
+.tb-avatar{width:28px;height:28px;border-radius:50%;background:var(--navy-700);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.tb-user-name{font-size:12.5px;font-weight:600}
+
+.main{flex:1;display:flex;overflow:hidden}
+
+/* ── SIDEBAR ───────────────────────────────────────────── */
+.sidebar{width:var(--sidebar);background:var(--navy-900);flex-shrink:0;display:flex;flex-direction:column;padding:16px 12px;gap:4px}
+.sb-label{color:#7e8fae;font-size:10px;font-weight:700;letter-spacing:.06em;padding:8px 10px 4px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#b9c6e0;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s ease,color .15s ease}
+.sb-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.sb-item.active{background:var(--navy-700);color:#fff}
+.sb-item i{font-size:17px;width:18px;text-align:center}
+
+/* ── CONTENT ───────────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:20px 24px;background:var(--bg)}
+
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.filter-label{color:var(--text2);font-size:10px;letter-spacing:.06em;font-weight:700;margin-right:2px}
+.filter-select,.filter-btn{background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--text1);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font)}
+.filter-select:hover,.filter-btn:hover{border-color:#94a3b8}
+.filter-btn.active{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
+
+/* ── KPI CARDS ─────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:box-shadow .15s ease,transform .15s ease}
+.kpi-card:hover{box-shadow:0 4px 16px rgba(15,23,42,.08);transform:translateY(-1px)}
+.kpi-card.disabled{cursor:default;opacity:.55}
+.kpi-card.disabled:hover{box-shadow:none;transform:none}
+.kpi-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:12px}
+.kpi-label{color:var(--text2);font-size:11.5px;font-weight:700;letter-spacing:.02em;margin-bottom:6px}
+.kpi-value{font-size:26px;font-weight:800;color:var(--text1);letter-spacing:-.02em}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px;font-weight:600}
+.kpi-soon{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--amber);background:var(--amber-bg);padding:2px 7px;border-radius:5px;margin-top:6px}
+
+/* ── TABLE ─────────────────────────────────────────────── */
+.panel{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.panel-title{font-size:14px;font-weight:700}
+.panel-count{color:var(--text2);font-size:12px;font-weight:600}
+.close-drill{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:6px}
+.close-drill:hover{background:#f1f5f9;color:var(--text1)}
+.tbl-wrap{overflow:auto;max-height:calc(100vh - 320px)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;background:#f8fafc;text-align:left;padding:9px 14px;font-weight:700;color:var(--text2);font-size:10.5px;letter-spacing:.04em;white-space:nowrap;border-bottom:1px solid var(--border);z-index:1}
+tbody td{padding:9px 14px;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+tbody tr:hover{background:#f8fafc}
+.sla-breach{color:var(--red);font-weight:700}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state i{font-size:40px;color:var(--text3);margin-bottom:12px;display:block}
+
+#loadingOverlay{position:fixed;inset:0;background:rgba(234,241,245,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:999}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--navy-800);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIGN IN ═══ -->
+<div id="signInPage">
+  <div class="signin-card">
+    <div class="signin-logo">SAR USA</div>
+    <div class="signin-sub">Sea Ops Dashboard</div>
+    <div id="signinLoading">Loading sign-in…</div>
+    <div id="googleBtnContainer"></div>
+    <div id="signinError"></div>
+  </div>
+</div>
+
+<!-- ═══ APP SHELL ═══ -->
+<div id="appShell">
+  <div class="topbar">
+    <div class="topbar-logo">SAR USA <span>Sea Ops Dashboard</span></div>
+    <div class="topbar-spacer"></div>
+    <div class="tb-user" onclick="signOut()" title="Sign out">
+      <div class="tb-avatar" id="tbAvatar">U</div>
+      <div class="tb-user-name" id="tbUserName">User</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="sb-label">LOB VIEW</div>
+      <div class="sb-item active" id="nav-Export" onclick="setDirection('Export')"><i class="ti ti-package-export"></i> Export</div>
+      <div class="sb-item" id="nav-Import" onclick="setDirection('Import')"><i class="ti ti-package-import"></i> Import</div>
+    </div>
+
+    <div class="content">
+      <div class="filter-bar" id="filterBar"></div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="panel" id="drillPanel" style="display:none">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title" id="drillTitle"></div>
+            <div class="panel-count" id="drillCount"></div>
+          </div>
+          <button class="close-drill" onclick="closeDrill()"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead id="drillHead"></thead>
+            <tbody id="drillBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="loadingOverlay"><div class="spinner"></div><div style="color:#64748b;font-size:13px;font-weight:600">Loading shipment data…</div></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '127423832819-4on81rm4jsnttdoo10cathc1tb6giupb.apps.googleusercontent.com';
+const MONGO_API = '/api/mongo';
+const BATCH_API = '/api/mongo-batch';
+
+let currentUser = null, currentUserDoc = null;
+let rawRecords = [], currentDirection = 'Export';
+let currentFilters = { period: 'all', jobOwner: '', customer: '' };
+let drillOpen = null;
+
+// ── GOOGLE SIGN-IN ──────────────────────────────────────
+window.onload = function() {
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    use_fedcm_for_prompt: true,
+  });
+  document.getElementById('signinLoading').style.display = 'none';
+  google.accounts.id.renderButton(
+    document.getElementById('googleBtnContainer'),
+    { theme: 'outline', size: 'large', width: 280, text: 'continue_with' }
+  );
+};
+
+function handleCredentialResponse(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  verifyUser({ email: payload.email, name: payload.name, picture: payload.picture });
+}
+
+async function verifyUser(info) {
+  try {
+    const email = (info.email || '').toLowerCase().trim();
+    const resp = await fetch(MONGO_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'findOne', collection: 'users', filter: { email, active: true } })
+    });
+    const data = await resp.json();
+    const user = data.document;
+
+    if (!user) {
+      showSigninError('Access denied. ' + email + ' is not authorised. Contact your administrator.');
+      return;
+    }
+
+    currentUser = { email, name: info.name || user.name, picture: info.picture };
+    currentUserDoc = user;
+
+    document.getElementById('signInPage').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    document.getElementById('tbUserName').textContent = currentUser.name;
+    document.getElementById('tbAvatar').textContent = (currentUser.name || 'U')[0].toUpperCase();
+
+    await loadData();
+  } catch (e) {
+    console.error('verifyUser error:', e);
+    showSigninError('Failed to verify access. Please try again.');
+  }
+}
+
+function showSigninError(msg) {
+  const err = document.getElementById('signinError');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+function signOut() {
+  if (!confirm('Sign out?')) return;
+  currentUser = null;
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('signInPage').style.display = 'flex';
+}
+
+// ── DATA LOADING ────────────────────────────────────────
+async function loadData() {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  try {
+    const resp = await fetch(BATCH_API + '?t=' + Date.now(), { method: 'GET', headers: { 'Cache-Control': 'no-cache, no-store' } });
+    if (!resp.ok) throw new Error('Batch API returned ' + resp.status);
+    const data = await resp.json();
+    rawRecords = data.records || [];
+    console.log('[loadData] Loaded', rawRecords.length, 'records');
+    renderFilterBar();
+    render();
+  } catch (e) {
+    console.error('loadData error:', e);
+  } finally {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+}
+
+function setDirection(dir) {
+  currentDirection = dir;
+  document.getElementById('nav-Export').classList.toggle('active', dir === 'Export');
+  document.getElementById('nav-Import').classList.toggle('active', dir === 'Import');
+  closeDrill();
+  renderFilterBar();
+  render();
+}
+
+// ── FILTERS ─────────────────────────────────────────────
+function directionRecords() {
+  return rawRecords.filter(r => r.direction === currentDirection);
+}
+
+function renderFilterBar() {
+  const recs = directionRecords();
+
+  // Build Reporting Period options from actual jobDate values present (Year-Month)
+  const periods = new Set();
+  recs.forEach(r => {
+    if (!r.jobDate) return;
+    const d = new Date(r.jobDate);
+    if (isNaN(d)) return;
+    periods.add(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+  });
+  const periodList = [...periods].sort().reverse();
+  const periodLabel = p => {
+    const [y, m] = p.split('-');
+    return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  const jobOwners = [...new Set(recs.map(r => r.jobOwner).filter(Boolean))].sort();
+  const customers = [...new Set(recs.map(r => r.customer).filter(Boolean))].sort();
+
+  if (!periods.has(currentFilters.period) && currentFilters.period !== 'all') currentFilters.period = 'all';
+  if (!jobOwners.includes(currentFilters.jobOwner)) currentFilters.jobOwner = '';
+  if (!customers.includes(currentFilters.customer)) currentFilters.customer = '';
+
+  document.getElementById('filterBar').innerHTML = `
+    <span class="filter-label">REPORTING PERIOD</span>
+    <select class="filter-select" onchange="currentFilters.period=this.value; render()">
+      <option value="all" ${currentFilters.period==='all'?'selected':''}>All periods</option>
+      ${periodList.map(p => `<option value="${p}" ${currentFilters.period===p?'selected':''}>${periodLabel(p)}</option>`).join('')}
+    </select>
+    <span class="filter-label">JOB OWNER</span>
+    <select class="filter-select" onchange="currentFilters.jobOwner=this.value; render()">
+      <option value="">All owners</option>
+      ${jobOwners.map(o => `<option value="${o}" ${currentFilters.jobOwner===o?'selected':''}>${o}</option>`).join('')}
+    </select>
+    <span class="filter-label">CUSTOMER</span>
+    <select class="filter-select" onchange="currentFilters.customer=this.value; render()">
+      <option value="">All customers</option>
+      ${customers.map(c => `<option value="${c}" ${currentFilters.customer===c?'selected':''}>${c}</option>`).join('')}
+    </select>
+  `;
+}
+
+function getFilteredRecords() {
+  return directionRecords().filter(r => {
+    if (currentFilters.period !== 'all') {
+      if (!r.jobDate) return false;
+      const d = new Date(r.jobDate);
+      if (isNaN(d)) return false;
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (key !== currentFilters.period) return false;
+    }
+    if (currentFilters.jobOwner && r.jobOwner !== currentFilters.jobOwner) return false;
+    if (currentFilters.customer && r.customer !== currentFilters.customer) return false;
+    return true;
+  });
+}
+
+function isOpen(r) {
+  // Open Jobs = Operation Lock Date is blank, per confirmed definition
+  return !r.operationLockDate || String(r.operationLockDate).trim() === '';
+}
+
+// ── KPIs + RENDER ───────────────────────────────────────
+function render() {
+  const recs = getFilteredRecords();
+  const totalJobs = recs.length; // shipmentId already deduped at push time (one row per shipment)
+  const openJobs = recs.filter(isOpen).length;
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card" onclick="openDrill('total')">
+      <div class="kpi-icon" style="background:#dbeafe;color:#1d4ed8"><i class="ti ti-briefcase"></i></div>
+      <div class="kpi-label">TOTAL JOBS</div>
+      <div class="kpi-value">${totalJobs.toLocaleString()}</div>
+      <div class="kpi-sub">${currentDirection} · click to view</div>
+    </div>
+    <div class="kpi-card" onclick="openDrill('open')">
+      <div class="kpi-icon" style="background:#fef3c7;color:#b45309"><i class="ti ti-folder-open"></i></div>
+      <div class="kpi-label">OPEN JOBS</div>
+      <div class="kpi-value">${openJobs.toLocaleString()}</div>
+      <div class="kpi-sub">Operation Lock pending · click to view</div>
+    </div>
+    <div class="kpi-card disabled">
+      <div class="kpi-icon" style="background:#fee2e2;color:#b91c1c"><i class="ti ti-receipt-2"></i></div>
+      <div class="kpi-label">UNPOSTED COST</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-soon">COMING SOON</div>
+    </div>
+    <div class="kpi-card disabled">
+      <div class="kpi-icon" style="background:#dcfce7;color:#15803d"><i class="ti ti-cash"></i></div>
+      <div class="kpi-label">UNBILLED REVENUE</div>
+      <div class="kpi-value">—</div>
+      <div class="kpi-soon">COMING SOON</div>
+    </div>
+  `;
+
+  if (drillOpen) renderDrill(drillOpen);
+}
+
+// ── DRILL-DOWN ──────────────────────────────────────────
+const DRILL_COLS = [
+  { key: 'shipmentId', label: 'Shipment No' },
+  { key: 'jobDate', label: 'Job Date', type: 'date' },
+  { key: 'jobOwner', label: 'Job Owner' },
+  { key: 'customer', label: 'Customer' },
+  { key: 'carrier', label: 'Carrier' },
+  { key: 'tradeLane', label: 'Trade Lane' },
+  { key: 'operationLockDate', label: 'Operation Lock Date', type: 'date' },
+];
+
+function fmtCell(val, type) {
+  if (val === undefined || val === null || val === '') return '<span style="color:#cbd5e1">—</span>';
+  if (type === 'date') {
+    const d = new Date(val);
+    if (isNaN(d)) return val;
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  return val;
+}
+
+function openDrill(type) {
+  drillOpen = type;
+  renderDrill(type);
+}
+
+function closeDrill() {
+  drillOpen = null;
+  document.getElementById('drillPanel').style.display = 'none';
+}
+
+function renderDrill(type) {
+  const recs = getFilteredRecords().filter(r => type === 'open' ? isOpen(r) : true);
+  document.getElementById('drillPanel').style.display = 'block';
+  document.getElementById('drillTitle').textContent = type === 'open' ? 'Open Jobs' : 'Total Jobs';
+  document.getElementById('drillCount').textContent = recs.length.toLocaleString() + ' shipments · ' + currentDirection;
+
+  document.getElementById('drillHead').innerHTML = '<tr>' + DRILL_COLS.map(c => `<th>${c.label}</th>`).join('') + '</tr>';
+
+  if (!recs.length) {
+    document.getElementById('drillBody').innerHTML = `<tr><td colspan="${DRILL_COLS.length}">
+      <div class="empty-state"><i class="ti ti-inbox"></i>No jobs match the current filters</div>
+    </td></tr>`;
+    return;
+  }
+
+  document.getElementById('drillBody').innerHTML = recs.slice(0, 500).map(r =>
+    '<tr>' + DRILL_COLS.map(c => `<td>${fmtCell(r[c.key], c.type)}</td>`).join('') + '</tr>'
+  ).join('');
+}
+</script>
+</body>
+</html>
