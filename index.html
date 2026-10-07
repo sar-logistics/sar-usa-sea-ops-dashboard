@@ -3385,18 +3385,37 @@ function fmtDate(d) {
 
 function initFilters(pageId) {
   const now = new Date();
-  // Indian FY starts April — determine FY start year
-  const fyStartYear = now.getFullYear();
 
-  // Monthly FROM = April of current FY, TO = current month
+  // Auto-detect a sensible default range from the actual loaded data (same
+  // detection used in getDateRange()'s fallback) instead of hardcoding
+  // today's date - correct for a fixed historical dataset (USA's CY2025/
+  // CY2026 snapshot) as well as for live/ongoing data (Indonesia/Thailand).
+  // Falls back to Jan-this-year..this-month only if no data is loaded yet.
+  const dates = (allSRR || []).map(r => {
+    if (r.jobDate !== undefined) return r.jobDate ? new Date(r.jobDate) : null;
+    const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
+    return raw ? new Date(raw) : null;
+  }).filter(d => d && d.getFullYear() > 2000);
+
+  let fromYear, fromMonth, toYear, toMonth;
+  if (dates.length) {
+    const minD = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
+    fromYear = minD.getFullYear(); fromMonth = minD.getMonth();
+    toYear   = maxD.getFullYear(); toMonth   = maxD.getMonth();
+  } else {
+    fromYear = now.getFullYear(); fromMonth = 0;
+    toYear   = now.getFullYear(); toMonth   = now.getMonth();
+  }
+
   const fromId = 'mp-from-' + pageId;
   const toId   = 'mp-to-' + pageId;
-  pickerState[fromId] = { year: fyStartYear, selected: { year: fyStartYear, month: 0 } }; // month 0 = January
-  pickerState[toId]   = { year: now.getFullYear(), selected: { year: now.getFullYear(), month: now.getMonth() } };
+  pickerState[fromId] = { year: fromYear, selected: { year: fromYear, month: fromMonth } };
+  pickerState[toId]   = { year: toYear, selected: { year: toYear, month: toMonth } };
   const fromLbl = document.getElementById(fromId + '-lbl');
   const toLbl   = document.getElementById(toId + '-lbl');
-  if (fromLbl) fromLbl.textContent = 'Jan ' + fyStartYear;
-  if (toLbl)   toLbl.textContent   = MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+  if (fromLbl) fromLbl.textContent = MONTHS[fromMonth] + ' ' + fromYear;
+  if (toLbl)   toLbl.textContent   = MONTHS[toMonth] + ' ' + toYear;
 
   // Weekly = current month (based on today)
   const wkId = 'mp-wk-' + pageId;
