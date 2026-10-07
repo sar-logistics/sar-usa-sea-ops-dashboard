@@ -5086,51 +5086,39 @@ const DV_COLS_WIP_COST = [
 
 // ── DETAIL VIEW ENGINE ────────────────────────────────────────
 // SRR columns
+// USA (LogiSys/JPA schema) field names verified against what the Apps
+// Script actually pushes. Same remapping approach as DV_COLS_TOTAL_JOBS/
+// OPEN_JOBS/LOW_PROFIT - fields with no real USA equivalent (jobStatus,
+// jobDept, consolAtd/Ata, hblReleasedDate, mblReleasedDate, invoiceDate,
+// preAlertDate, vendorPaymentDate, containerNo, teu-as-count) were dropped
+// rather than left pointing at Indonesia/Thailand-only fields.
 const DV_COLS_SRR = [
   { key:'shipmentId',          label:'Shipment ID'                        },
   { key:'direction',           label:'Direction'                          },
-  { key:'mode',                label:'Mode'                               },
-  { key:'jobStatus',           label:'Job Status'                         },
-  { key:'jobBranch',           label:'Branch'                             },
-  { key:'jobDept',             label:'Department'                         },
-  { key:'localClientName',     label:'Client'                             },
-  { key:'operator',            label:'Job Operator'                       },
-  { key:'salesRep',            label:'Sales Rep'                          },
-  { key:'origin',              label:'Origin'                             },
-  { key:'originCtry',          label:'Origin Country'                     },
-  { key:'destination',         label:'Destination'                        },
-  { key:'destCtry',            label:'Dest. Country'                      },
-  { key:'etdDate',             label:'ETD (SOB)',          date:true       },
-  { key:'etaDate',             label:'ETA',                date:true       },
-  { key:'jobOpenedDate',       label:'Job Opened',         date:true       },
-  { key:'consolAtd',           label:'Consol ATD',         date:true       },
-  { key:'consolAta',           label:'Consol ATA',         date:true       },
-  { key:'hblReleasedDate',     label:'HBL Released',       date:true       },
-  { key:'mblReleasedDate',     label:'MBL Released',       date:true       },
-  { key:'invoiceDate',         label:'Invoice Date',       date:true       },
-  { key:'shippedOnBoard',      label:'Shipped On Board',   date:true       },
+  { key:'cargoType',           label:'Cargo Type'                         },
+  { key:'location',            label:'Branch'                             },
+  { key:'customer',            label:'Customer'                           },
+  { key:'jobOwner',            label:'Job Owner'                          },
+  { key:'salesPerson',         label:'Sales Rep'                          },
+  { key:'loadingPort',         label:'Origin'                             },
+  { key:'originPortCountry',   label:'Origin Country'                     },
+  { key:'dischargePort',       label:'Destination'                        },
+  { key:'destinationCountry',  label:'Dest. Country'                      },
+  { key:'etdLoadingPort',      label:'ETD (SOB)',          date:true       },
+  { key:'etaDischarge',        label:'ETA',                date:true       },
+  { key:'jobDate',             label:'Job Date',           date:true       },
   { key:'recognizedRevenue',   label:'Revenue',            num:true        },
   { key:'recognizedCost',      label:'Cost',               num:true        },
-  { key:'jobProfit',           label:'Job Profit',         num:true        },
-  { key:'derivedMargin',       label:'Derived Margin %',   num:true, pct:true },
-  { key:'wip',                 label:'WIP',                num:true        },
-  { key:'accural',             label:'Accrual',            num:true        },
-  { key:'vessel',              label:'Vessel'                             },
-  { key:'carrierName',         label:'Carrier'                            },
-  { key:'mblNumber',           label:'MBL No.'                            },
-  { key:'containerNo',         label:'Container No.'                      },
-  { key:'teu',                 label:'TEU',                num:true, plain:true },
-  { key:'consigneeName',       label:'Consignee'                          },
-  { key:'consignorName',       label:'Consignor'                          },
-  { key:'incoterm',            label:'Incoterm'                           },
-  { key:'consolId',            label:'Consol ID'                          },
-  { key:'carrierCode',         label:'Carrier Code'                       },
-  { key:'loadPort',            label:'Load Port'                          },
-  { key:'dischargePort',       label:'Discharge Port'                     },
-  { key:'consoleType',         label:'Console Type'                       },
-  { key:'houseRef',            label:'House Ref'                          },
-  { key:'preAlertDate',        label:'Pre-Alert Date',     date:true       },
-  { key:'vendorPaymentDate',   label:'Vendor Payment',     date:true       },
+  { key:'actualProfit',        label:'Job Profit',         num:true        },
+  { key:'carrierNumber',       label:'Vessel/Voyage'                      },
+  { key:'carrier',             label:'Carrier'                            },
+  { key:'masterNo',            label:'MBL No.'                            },
+  { key:'containerTeu',        label:'Container TEU',      num:true, plain:true },
+  { key:'consignee',           label:'Consignee'                          },
+  { key:'shipper',             label:'Consignor'                          },
+  { key:'toiIncoTerms',        label:'Incoterm'                           },
+  { key:'consolNo',            label:'Consol No.'                         },
+  { key:'houseNo',             label:'House No.'                          },
 ];
 
 const DV_COLS_WIP = [
@@ -5337,7 +5325,12 @@ const dvColFilters = {};
 let dvOpenFilterKey = null; // which column's dropdown is open
 
 function openDrill(records, title, sub, colSet) {
-  const isJPA = records.length && records[0].billedRevenue !== undefined;
+  // billedRevenue alone isn't a reliable JPA signal - every USA (LogiSys/JPA
+  // schema) record has it too. jobDate is unique to USA's schema and never
+  // appears on Indonesia/Thailand's actual JPA sub-records, so excluding on
+  // its presence stops USA records from being misrouted to DV_COLS_JPA_ENRICHED
+  // (which silently overrode whatever colSet was actually passed in)
+  const isJPA = records.length && records[0].billedRevenue !== undefined && records[0].jobDate === undefined;
 
   if (isJPA) {
     // Build SRR lookup by shipmentNo for enrichment
