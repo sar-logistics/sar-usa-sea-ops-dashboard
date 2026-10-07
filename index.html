@@ -2266,6 +2266,14 @@ let currentLob = null; // null = state 1, 'sea'|'air' = state 2/3
 function matchesCurrentLob(r) {
   const lobCode = (r.lob || '').toString().trim().toUpperCase();
   if (!lobCode) return currentLob !== 'air' && currentLob !== 'road'; // no LOB code on record -> treat as Sea (legacy data)
+  // USA (LogiSys/JPA schema) uses readable strings like "SEA EXPORT"/"SEA
+  // IMPORT" rather than Indonesia/Thailand's short codes (FES/FIS/FEA/FIA/
+  // FER/FIR) - detect by a space in the value, since short codes never have one
+  if (lobCode.includes(' ')) {
+    if (currentLob === 'air')  return lobCode.includes('AIR');
+    if (currentLob === 'road') return lobCode.includes('ROAD');
+    return lobCode.includes('SEA');
+  }
   if (currentLob === 'air')  return lobCode.endsWith('A');
   if (currentLob === 'road') return lobCode.endsWith('R');
   return lobCode.endsWith('S');
