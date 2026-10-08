@@ -6700,7 +6700,13 @@ const SUMMARY_REPORTS = [
     title:   'Open Jobs',
     color:   '#dc2626',
     okColor: '#16a34a',
-    flag:    r => !['CMP','CLS'].includes((r.jobStatus||'').toUpperCase()),
+    flag:    r => {
+      // USA (LogiSys/JPA schema) - confirmed definition: Open = Operation
+      // Lock Date blank. jobStatus doesn't exist for USA, so the old check
+      // always evaluated true (flagging 100% of jobs as open, always)
+      if (r.jobDate !== undefined) return !r.operationLockDate || String(r.operationLockDate).trim() === '';
+      return !['CMP','CLS'].includes((r.jobStatus||'').toUpperCase());
+    },
   },
   {
     id:      'revenue-not-billed',
