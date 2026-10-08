@@ -1032,9 +1032,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         <div class="nav-item" data-tooltip="Cost not posted within 7 days of SOB" onclick="setPage('cost-not-posted','Cost Not Posted within 7 Days of SOB','Job: Revenue, Cost &amp; Profit',this)">
           <i class="ti ti-coins"></i><span class="nav-item-label">Cost Not Posted within 7 Days of SOB</span><span class="nav-badge hidden" id="badge-cost-not-posted-2">0</span>
         </div>
-        <div class="nav-item" data-tooltip="Jobs with profit margin below 3%" onclick="setPage('job-profit','Jobs Having Job Profit &lt; 3%','Job: Revenue, Cost &amp; Profit',this)">
-          <i class="ti ti-trending-down"></i><span class="nav-item-label">Jobs Having Job Profit &lt; 3%</span><span class="nav-badge warn hidden" id="badge-job-profit-2">0</span>
-        </div>
       </div><!-- /sec-performance-body -->
 
       </div><!-- /sidebar-nav-scroll -->
@@ -1703,111 +1700,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       
       <!-- Placeholder pages -->
       
-      <!-- PAGE: Job profit < 3% -->
-      <div class="page" id="page-low-profit">
-        <div class="filter-bar" id="filterbar-low-profit">
-          <span class="filter-label">Report View</span>
-          <select class="filter-select" id="view-low-profit" onchange="onViewChange('low-profit')" style="min-width:150px">
-            <option value="monthly">Monthly View</option>
-            <option value="weekly">Weekly View</option>
-            <option value="quarterly">Quarterly View</option>
-            <option value="yearly">Yearly View</option>
-            <option value="custom">Custom Range</option>
-          </select>
-          <div id="fc-monthly-low-profit" style="display:flex;align-items:center;gap:8px">
-            <span class="filter-label">From</span>
-            <div class="mp-wrap"><div class="mp-trigger" onclick="togglePicker('mp-from-low-profit')"><i class="ti ti-calendar-event"></i><span id="mp-from-low-profit-lbl">Pick Month</span></div><div class="mp-dropdown hidden" id="mp-from-low-profit"></div></div>
-            <span class="filter-label">To</span>
-            <div class="mp-wrap"><div class="mp-trigger" onclick="togglePicker('mp-to-low-profit')"><i class="ti ti-calendar-event"></i><span id="mp-to-low-profit-lbl">Pick Month</span></div><div class="mp-dropdown hidden" id="mp-to-low-profit"></div></div>
-          </div>
-          <div id="fc-weekly-low-profit" style="display:none;align-items:center;gap:8px">
-            <span class="filter-label">Month</span>
-            <div class="mp-wrap"><div class="mp-trigger" onclick="togglePicker('mp-wk-low-profit')"><i class="ti ti-calendar-event"></i><span id="mp-wk-low-profit-lbl">Pick Month</span></div><div class="mp-dropdown hidden" id="mp-wk-low-profit"></div></div>
-          </div>
-          <div id="fc-quarterly-low-profit" style="display:none;align-items:center;gap:8px">
-            <span class="filter-label">Quarter</span>
-            <select class="filter-select" id="quarter-low-profit" onchange="renderPage('low-profit')" style="min-width:160px">
-              <option value="1">Q1 (Jan – Mar)</option>
-              <option value="2">Q2 (Apr – Jun)</option>
-              <option value="3">Q3 (Jul – Sep)</option>
-              <option value="4">Q4 (Oct – Dec)</option>
-            </select>
-          </div>
-          <div id="fc-yearly-low-profit" style="display:none;align-items:center;gap:8px">
-            <span class="filter-label">Financial Year</span>
-            <span id="fy-label-low-profit" style="font-size:12px;color:var(--text2);font-weight:500">Auto-detected</span>
-          </div>
-          <div id="fc-custom-low-profit" style="display:none;align-items:center;gap:8px">
-            <span class="filter-label">From</span>
-            <div class="dp-wrap"><div class="dp-trigger" onclick="togglePicker('dp-cfrom-low-profit')"><i class="ti ti-calendar-event"></i><span id="dp-cfrom-low-profit-lbl" class="dp-placeholder">Pick Date</span></div><div class="dp-dropdown hidden" id="dp-cfrom-low-profit"></div></div>
-            <span class="filter-sep">–</span>
-            <span class="filter-label">To</span>
-            <div class="dp-wrap"><div class="dp-trigger" onclick="togglePicker('dp-cto-low-profit')"><i class="ti ti-calendar-event"></i><span id="dp-cto-low-profit-lbl" class="dp-placeholder">Pick Date</span></div><div class="dp-dropdown hidden" id="dp-cto-low-profit"></div></div>
-          </div>
-          <div class="add-filters-wrap" id="afw-low-profit">
-            <button class="add-filters-btn" id="afb-low-profit" onclick="toggleAddFilters('low-profit')">
-              <i class="ti ti-adjustments-horizontal" style="font-size:13px"></i> Filters
-            </button>
-            <div class="add-filters-panel" id="afp-low-profit">
-              <div class="add-filter-row">
-                <div class="add-filter-label">Branch</div>
-                <div class="ms-wrap" id="msw-branch-low-profit" style="width:100%">
-                  <div class="ms-trigger" onclick="toggleMs('branch-low-profit')" style="width:100%;box-sizing:border-box"><i class="ti ti-building ms-icon"></i><span class="ms-label" id="msl-branch-low-profit">All Branches</span><i class="ti ti-chevron-down ms-caret"></i></div>
-                  <div class="ms-dropdown" id="msd-branch-low-profit"></div>
-                </div>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">Job Owner</div>
-                <div class="ms-wrap" id="msw-owner-low-profit" style="width:100%">
-                  <div class="ms-trigger" onclick="toggleMs('owner-low-profit')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-low-profit">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
-                  <div class="ms-dropdown" id="msd-owner-low-profit"></div>
-                </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">MBL Type</div>
-                <select class="add-filter-select" id="af-mbl-low-profit" onchange="renderPage('low-profit')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-low-profit" onchange="renderPage('low-profit')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <button class="dv-btn" onclick="refreshData('low-profit')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
-        </div>
-        <div class="kpi-row">
-          <div class="kpi blue"><div class="kpi-top"><i class="kpi-icon-sm ti ti-chart-bar blue"></i><span class="kpi-lbl">Total Jobs</span></div><div class="kpi-val blue" id="kv-lp-total">—</div><div class="kpi-sub" id="kv-lp-period">All jobs in period</div></div>
-          <div class="kpi orange"><div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Job Profit is &lt; 3%</span></div><div class="kpi-val orange" id="kv-lp-flagged">—</div><div class="kpi-sub">Margin % formula pending</div></div>
-          <div class="kpi red"><div class="kpi-top"><i class="kpi-icon-sm ti ti-percentage red"></i><span class="kpi-lbl">% of such jobs</span></div><div class="kpi-val red" id="kv-lp-pct">—</div><div class="kpi-sub" id="kv-lp-pct-sub">% of total jobs</div></div>
-        </div>
-        <div class="sec-hd">
-          <div class="sec-title">Branch › Job Owner — Job profit &lt; 3%</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div class="sec-ct" id="sc-low-profit">Loading…</div>
-            <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('low-profit')"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('low-profit')"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
-          </div>
-        </div>
-        <div class="tbl-wrap">
-          <table id="tbl-low-profit">
-            <thead><tr id="thead-low-profit"><th style="min-width:170px">Branch / Job Owner</th><th class="col-grand">Grand Total</th></tr></thead>
-            <tbody id="tbody-low-profit"><tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">Loading data…</td></tr></tbody>
-          </table>
-        </div>
-      </div>
+      
       
       <div class="page" id="page-irn-inv"><div class="ph-wrap"><i class="ti ti-alert-triangle"></i><p>Invoice IRN failed/missing — coming soon</p></div></div>
       <div class="page" id="page-irn-cn"><div class="ph-wrap"><i class="ti ti-receipt-off"></i><p>Credit note IRN missing — coming soon</p></div></div>
@@ -2212,7 +2105,6 @@ function hideTopbarFilters() {
   const pageIdMap = {
     'revenue-not-billed': 'unbilled-rev',
     'cost-not-posted':    'unposted-cost',
-    'job-profit':         'low-profit',
   };
   const filterRow = document.getElementById('tb-filter-row');
   if (!filterRow) return;
@@ -2952,7 +2844,6 @@ function setPage(pageId, title, group, el) {
   const pageIdMap = {
     'revenue-not-billed': 'unbilled-rev',
     'cost-not-posted':    'unposted-cost',
-    'job-profit':         'low-profit',
   };
   document.querySelectorAll('.nav-item,.sys-item,.reports-label').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
@@ -3007,7 +2898,7 @@ function setPage(pageId, title, group, el) {
   if (pageId === 'usage') loadUsageAnalytics();
   if (pageId === 'feedback') loadFeedback();
   // Render report pages lazily — only when the user actually navigates to them
-  const reportPages = ['summary','open-jobs','total-jobs','unbilled-rev','unposted-cost','low-profit','revenue-not-billed','cost-not-posted','job-profit']; // trimmed to the 6 pages that actually exist and render (some ids are aliases of the same div - see pageIdMap above)
+  const reportPages = ['summary','open-jobs','total-jobs','unbilled-rev','unposted-cost','revenue-not-billed','cost-not-posted']; // trimmed to the pages that actually exist and render (some ids are aliases of the same div - see pageIdMap above); job-profit/low-profit removed per request
   if (reportPages.includes(pageId) && allSRR.length) renderPage(pageId);
   logUsage(pageId);
   setTimeout(convertAllSelects, 50);
@@ -3659,7 +3550,6 @@ function renderPage(pageId) {
   if (pageId === 'open-jobs')          renderOpenJobs();
   if (pageId === 'revenue-not-billed' || pageId === 'unbilled-rev') renderUnbilledRev();
   if (pageId === 'cost-not-posted'    || pageId === 'unposted-cost') renderUnpostedCost();
-  if (pageId === 'job-profit'         || pageId === 'low-profit') renderLowProfit();
 }
 
 // ── RENDER: Total Jobs Created ────────────────────────────────
@@ -4414,95 +4304,6 @@ function _renderJPAFlaggedReport(pageId, s, flagLabel, label, view, cols, filter
   const tbody = document.getElementById('tbody-' + pageId); if (tbody) tbody.innerHTML = h;
 }
 
-// ── RENDER: Jobs Having Job Profit < 3% ──────────────────────
-function renderLowProfit() {
-  const pageId = 'low-profit';
-  const { cols, label, view } = getColumns(pageId);
-  // Hide/show scorecards and grand total based on view
-  const _kpiRow = document.querySelector('#page-low-profit .kpi-row');
-  if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered  = filterByDate(allSRR, pageId);
-
-  populateFilters(pageId, filtered);
-  const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
-
-  // USA (LogiSys/JPA schema) has no stored Margin % column, and how to derive
-  // one (which fields, what formula) is still undecided - left pending per
-  // request rather than silently computing something that looks like a real
-  // "0 flagged, 100% healthy" result when it isn't actually calculated at all.
-  const flaggedDD  = [];
-
-  const totalJobs    = filteredDD.length;
-  const flaggedCount = flaggedDD.length;
-
-  // Scorecards — Total Jobs still works (no margin needed for that count);
-  // the margin-dependent flagged/pct scorecards show a clear pending state
-  const kTotal = document.getElementById('kv-lp-total');
-  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,DV_COLS_LOW_PROFIT); }
-  const kFlagged = document.getElementById('kv-lp-flagged');
-  if (kFlagged) { kFlagged.textContent = '—'; kFlagged.style.cursor='default'; kFlagged.onclick=null; kFlagged.title='Margin % not yet available - formula pending'; }
-  const kPct = document.getElementById('kv-lp-pct');
-  if (kPct) { kPct.textContent = 'Pending'; kPct.style.cursor='default'; kPct.onclick=null; kPct.title='Margin % not yet available - formula pending'; }
-  const kPeriod = document.getElementById('kv-lp-period'); if (kPeriod) kPeriod.textContent = label;
-  const kPctSub = document.getElementById('kv-lp-pct-sub'); if (kPctSub) kPctSub.textContent = 'Margin % formula pending';
-  const sc = document.getElementById('sc-low-profit'); if (sc) sc.textContent = totalJobs.toLocaleString()+' total · margin pending';
-  setBadge('low-profit', 0);
-
-  // Build flaggedMap only
-  const flaggedMap = {};
-  function addMap(map, br, ow, ck) { if(!map[br])map[br]={}; if(!map[br][ow])map[br][ow]={}; map[br][ow][ck]=(map[br][ow][ck]||0)+1; }
-  flaggedDD.forEach(r => addMap(flaggedMap, r.jobBranch|| r.location || '(No Branch)', r.operator||'(Unknown)', getColKey(r,view)||'other'));
-
-  const gtFl={}; cols.forEach(c=>{gtFl[c.key]=0;}); let gtFlGrand=0;
-  const colKeyFn = r => getColKey(r,view)||'other';
-  const colRecFl={};
-  flaggedDD.forEach(r=>{ const ck=colKeyFn(r); if(gtFl[ck]!==undefined)gtFl[ck]++; gtFlGrand++; if(!colRecFl[ck])colRecFl[ck]=[]; colRecFl[ck].push(r); });
-
-  const isSingle = cols.length===1 && cols[0].single;
-  const tbl = document.getElementById('tbl-low-profit'); if(tbl) tbl.classList.toggle('single-col',isSingle);
-  const thead = document.getElementById('thead-low-profit');
-  if(thead) thead.innerHTML='<th style="min-width:260px">Branch / Job Owner</th>'+(isSingle?'':`<th class="col-grand">Grand Total</th>`)+cols.map(c=>`<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
-
-  const gtFlagId=dvReg(flaggedDD);
-  const flGrandTd=isSingle?'':`<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtFlagId}','Grand Total — Flagged','${label}','DV_COLS_LOW_PROFIT')">${gtFlGrand>0?gtFlGrand.toLocaleString():'<span class="dash">—</span>'}</td>`;
-
-  let h=`<tr class="gt-block">
-    <td style="padding-left:10px"><i class="rc open" id="rc-gt-lp" onclick="toggleRows('gt-lp',event)">▼</i> <strong>GRAND TOTAL</strong></td>
-    ${flGrandTd}
-    ${colCells(gtFl,flaggedDD,cols,colKeyFn,'Grand Total — Flagged',label,'DV_COLS_LOW_PROFIT')}
-  </tr>
-  <tr class="gt-sep"><td colspan="${cols.length+(isSingle?1:2)}"></td></tr>`;
-
-  Object.keys(flaggedMap).sort().forEach((br,bi) => {
-    const bKey='lp'+bi, owMap=flaggedMap[br]||{};
-    const brFlagRecs=flaggedDD.filter(r=>(r.jobBranch||r.branch|| r.location || '(No Branch)')===br);
-    const brFlId=dvReg(brFlagRecs), safeBr=br.replace(/'/g,"\\'");
-    const brFl={}; cols.forEach(c=>{brFl[c.key]=0;}); let brFlGrand=0;
-    Object.values(owMap).forEach(oc=>{cols.forEach(c=>{brFl[c.key]+=(oc[c.key]||0);}); brFlGrand+=Object.values(oc).reduce((a,b)=>a+b,0);});
-    const av=`<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
-    const bFtd=isSingle?'':`<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brFlId}','${safeBr} — Low Profit','${label}','DV_COLS_LOW_PROFIT')">${brFlGrand>0?brFlGrand.toLocaleString():'<span class="dash">—</span>'}</td>`;
-    h+=`<tr class="br-row">
-      <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>${bFtd}
-      ${colCells(brFl,brFlagRecs,cols,colKeyFn,safeBr+' — Flagged',label,'DV_COLS_LOW_PROFIT')}
-    </tr>`;
-    Object.keys(owMap).sort().forEach((ow,oi) => {
-      const owKey=bKey+'o'+oi, owCols=owMap[ow]||{};
-      const owFRecs=brFlagRecs.filter(r=>(r.operator||r.jobOwner||'(Unknown)')===ow);
-      const owFlId=dvReg(owFRecs), safeOw=ow.replace(/'/g,"\\'");
-      let owFlGrand=0; cols.forEach(c=>{owFlGrand+=(owCols[c.key]||0);});
-      const oav=`<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
-      const jFtd=isSingle?'':`<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owFlId}','${safeOw} — Low Profit','${label}','DV_COLS_LOW_PROFIT')">${owFlGrand>0?owFlGrand.toLocaleString():'<span class="dash">—</span>'}</td>`;
-      h+=`<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
-        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Job Owner)</span></td>${jFtd}
-        ${colCells(owCols,owFRecs,cols,colKeyFn,safeOw+' — Flagged',label,'DV_COLS_LOW_PROFIT')}
-      </tr>`;
-    });
-  });
-
-  if(!Object.keys(flaggedMap).length) h='<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No flagged jobs for this period.</td></tr>';
-  const tbody=document.getElementById('tbody-low-profit'); if(tbody)tbody.innerHTML=h;
-}
-
 // ── ADDITIONAL FILTERS (MBL Type / HBL Type) ────────────────
 function toggleAddFilters(pageId) {
   const panel = document.getElementById('afp-' + pageId);
@@ -4574,7 +4375,7 @@ function applyAdditionalFilters(data, pageId) {
 }
 // State: msState[filterId] = Set of selected values (empty Set = "All")
 const msState = {};
-const MS_PAGES = ['job-unlinked','ol-delay','low-profit','inv-delay','ams'];
+const MS_PAGES = ['job-unlinked','ol-delay','inv-delay','ams'];
 const MS_FILTERS = ['branch','owner'];
 
 function msId(type, pageId) { return type + '-' + pageId; }
@@ -5733,7 +5534,7 @@ async function loadData() {
     setTimeout(markDataUpdated, 500);
     setTimeout(convertAllSelects, 600);
 
-    const ALL_REPORT_PAGES = ['job-unlinked','ol-delay','open-jobs','total-jobs','unbilled-rev','unposted-cost','low-profit','inv-delay','ams','hbl-not-released','mbl-not-released','pre-alert-delay','si-not-submitted','vendor-payment-delay','sob-blank','mbl-type-blank','hbl-type-blank','mbl-col-hbl-pre','mbl-col-hbl-col','mbl-pre-hbl-pre','mbl-pre-hbl-col','perf-ol','perf-hbl','perf-mbl','perf-prealert','perf-inv','perf-si','perf-vendor-payment','summary'];
+    const ALL_REPORT_PAGES = ['job-unlinked','ol-delay','open-jobs','total-jobs','unbilled-rev','unposted-cost','inv-delay','ams','hbl-not-released','mbl-not-released','pre-alert-delay','si-not-submitted','vendor-payment-delay','sob-blank','mbl-type-blank','hbl-type-blank','mbl-col-hbl-pre','mbl-col-hbl-col','mbl-pre-hbl-pre','mbl-pre-hbl-col','perf-ol','perf-hbl','perf-mbl','perf-prealert','perf-inv','perf-si','perf-vendor-payment','summary'];
 
     // Init filter dropdowns for all pages (cheap — just populates date pickers/selects)
     ALL_REPORT_PAGES.forEach(pageId => { initFilters(pageId); });
@@ -6731,16 +6532,6 @@ const SUMMARY_REPORTS = [
       const days = (Date.now() - sob) / 86400000;
       return days > 7 && (!r.recognizedCost || r.recognizedCost === 0);
     },
-  },
-  {
-    id:      'job-profit',
-    title:   'Job Profit < 3%',
-    color:   '#dc2626',
-    okColor: '#16a34a',
-    // Margin % has no stored column and no agreed formula yet (left pending
-    // per request) - never flags anything rather than silently checking a
-    // field that doesn't exist and always returning a misleading "healthy" result
-    flag:    r => false,
   },
 ];
 
