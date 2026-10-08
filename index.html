@@ -3331,27 +3331,9 @@ function fmtDate(d) {
 function initFilters(pageId) {
   const now = new Date();
 
-  // Auto-detect a sensible default range from the actual loaded data (same
-  // detection used in getDateRange()'s fallback) instead of hardcoding
-  // today's date - correct for a fixed historical dataset (USA's CY2025/
-  // CY2026 snapshot) as well as for live/ongoing data (Indonesia/Thailand).
-  // Falls back to Jan-this-year..this-month only if no data is loaded yet.
-  const dates = (allSRR || []).map(r => {
-    if (r.jobDate !== undefined) return r.jobDate ? new Date(r.jobDate) : null;
-    const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
-    return raw ? new Date(raw) : null;
-  }).filter(d => d && d.getFullYear() > 2000);
-
-  let fromYear, fromMonth, toYear, toMonth;
-  if (dates.length) {
-    const minD = new Date(Math.min(...dates.map(d => d.getTime())));
-    const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
-    fromYear = minD.getFullYear(); fromMonth = minD.getMonth();
-    toYear   = maxD.getFullYear(); toMonth   = maxD.getMonth();
-  } else {
-    fromYear = now.getFullYear(); fromMonth = 0;
-    toYear   = now.getFullYear(); toMonth   = now.getMonth();
-  }
+  // Default range: Jan 2026 -> current month, per explicit request
+  const fromYear = 2026, fromMonth = 0;
+  const toYear   = 2026, toMonth   = now.getMonth();
 
   const fromId = 'mp-from-' + pageId;
   const toId   = 'mp-to-' + pageId;
