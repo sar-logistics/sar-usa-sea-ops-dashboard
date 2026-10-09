@@ -4330,7 +4330,8 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
   const _kpiRow = document.querySelector('#page-' + pageId + ' .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
 
-  const filteredDD = filterEtdEtaByDate(rawWIP, pageId);
+  let filteredDD = applyAdditionalFilters(applyDropdownFilters(filterEtdEtaByDate(rawWIP, pageId), pageId), pageId);
+  populateFilters(pageId, filteredDD);
   const shipments = groupEtdEtaByShipment(filteredDD, sumField);
   const flaggedShipments = shipments.filter(sh => sh.sum > 0);
 
