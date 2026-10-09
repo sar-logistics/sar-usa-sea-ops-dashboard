@@ -7172,25 +7172,44 @@ function renderSummary() {
 
   if (!cols.length) { container.innerHTML = '<div style="padding:40px;color:#94a3b8;text-align:center">No data for the selected period.</div>'; return; }
 
-  // WIP-based flag lookups — same rule the actual Revenue Not Billed / Cost Not
-  // Posted pages use, so the Summary checkpoint counts match those pages exactly.
-  const wipRevFlagged = {};   // shipmentId -> true if any WIP line has wip > 0
-  const wipRevAmount  = {};   // shipmentId -> sum of wip $ across its lines
-  const wipCostFlagged = {};  // shipmentId -> true if any WIP line has accrual !== 0
-  const wipCostAmount  = {};  // shipmentId -> sum of |accrual| $ across its lines
-  (rawWIP || []).forEach(w => {
-    if (w.wip > 0) {
-      wipRevFlagged[w.shipmentId] = true;
-      wipRevAmount[w.shipmentId]  = (wipRevAmount[w.shipmentId] || 0) + w.wip;
-    }
-    if (w.accrual !== 0 && w.accrual !== undefined && w.accrual !== null) {
-      wipCostFlagged[w.shipmentId] = true;
-      wipCostAmount[w.shipmentId]  = (wipCostAmount[w.shipmentId] || 0) + Math.abs(w.accrual);
-    }
-  });
+  // Revenue Not Billed / Cost Not Posted use a genuinely different data
+  // source and date field than every other checkpoint here: they're built
+  // from the ETD/ETA tab's charge-line data (rawWIP), grouped per shipment,
+  // and bucketed by etdEtaNew (the 3-step fallback) - not from allSRR's
+  // jobDate like the rest of SUMMARY_REPORTS. This mirrors exactly what the
+  // real Unbilled Revenue/Unposted Cost pages do (groupEtdEtaByShipment() +
+  // filterEtdEtaByDate() + etdEtaColKey()), so these counts actually match
+  // those pages instead of silently always showing 0/healthy (the old
+  // w.wip/w.accrual field names don't exist on USA's data at all).
+  function computeEtdEtaReportStats(sumField) {
+    const etdEtaFiltered = filterEtdEtaByDate(rawWIP, pageId);
+    const shipments = groupEtdEtaByShipment(etdEtaFiltered, sumField);
+    const totals = {}, flags = {}, flagAmounts = {};
+    cols.forEach(c => { totals[c.key] = 0; flags[c.key] = 0; flagAmounts[c.key] = 0; });
+    shipments.forEach(sh => {
+      const ck = etdEtaColKey(sh, view);
+      if (!ck || totals[ck] === undefined) return;
+      totals[ck]++;
+      if (sh.sum > 0) {
+        flags[ck]++;
+        flagAmounts[ck] += sh.sum;
+      }
+    });
+    const totalFlagged = Object.values(flags).reduce((a,b) => a+b, 0);
+    const totalAll     = Object.values(totals).reduce((a,b) => a+b, 0);
+    const pct          = totalAll > 0 ? +((totalFlagged / totalAll) * 100).toFixed(1) : 0;
+    return { totals, flags, flagAmounts, totalFlagged, totalAll, pct };
+  }
 
   // ── Compute per-report stats ──────────────────────────────────────────────
   const reportStats = SUMMARY_REPORTS.map(report => {
+    if (report.id === 'revenue-not-billed') {
+      return { report, ...computeEtdEtaReportStats('unbilledRevenue') };
+    }
+    if (report.id === 'cost-not-posted') {
+      return { report, ...computeEtdEtaReportStats('unpostedCost') };
+    }
+
     let data = filtered;
     if (report.pre) data = data.filter(report.pre);
     const colKeyFn = r => getColKey(r, view);
@@ -7200,15 +7219,7 @@ function renderSummary() {
       const ck = colKeyFn(r);
       if (!ck || totals[ck] === undefined) return;
       totals[ck]++;
-      let isFlagged;
-      if (report.id === 'revenue-not-billed') isFlagged = !!wipRevFlagged[r.shipmentId];
-      else if (report.id === 'cost-not-posted') isFlagged = !!wipCostFlagged[r.shipmentId];
-      else isFlagged = report.flag(r);
-      if (isFlagged) {
-        flags[ck]++;
-        if (report.id === 'revenue-not-billed') flagAmounts[ck] += (wipRevAmount[r.shipmentId] || 0);
-        else if (report.id === 'cost-not-posted') flagAmounts[ck] += (wipCostAmount[r.shipmentId] || 0);
-      }
+      if (report.flag(r)) flags[ck]++;
     });
     const totalFlagged = Object.values(flags).reduce((a,b) => a+b, 0);
     const totalAll     = Object.values(totals).reduce((a,b) => a+b, 0);
