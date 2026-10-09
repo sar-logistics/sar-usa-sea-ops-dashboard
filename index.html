@@ -850,28 +850,55 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
 .dv-col-dd-apply{border:none;background:#1F3A6E;color:#fff;border-radius:6px;padding:5px 14px;font-size:11.5px;font-weight:600;cursor:pointer}
 .dv-col-dd-clear{border:1px solid #e2e8f0;background:#fff;color:#64748b;border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer}
 
-/* Frozen first TWO columns */
+/* Frozen first SIX columns - widened from 3 to 6 so each page's full set of
+   requested frozen fields (e.g. Job No./LOB/ETD-ETA New/Charge/Unbilled
+   Revenue/Unposted Cost, or Shipment No/Direction/ETD-ETA New/Location/Job
+   Owner) stays visible while scrolling right. Fixed per-column widths with
+   cumulative left offsets: 140/100/110/160/140/130px -> left 0/140/240/350/510/650 */
 .dv-tbl thead th:nth-child(1),
 .dv-tbl thead th:nth-child(2),
 .dv-tbl thead th:nth-child(3),
+.dv-tbl thead th:nth-child(4),
+.dv-tbl thead th:nth-child(5),
+.dv-tbl thead th:nth-child(6),
 .dv-tbl tbody td:nth-child(1),
 .dv-tbl tbody td:nth-child(2),
 .dv-tbl tbody td:nth-child(3),
+.dv-tbl tbody td:nth-child(4),
+.dv-tbl tbody td:nth-child(5),
+.dv-tbl tbody td:nth-child(6),
 .dv-tbl tfoot td:nth-child(1),
 .dv-tbl tfoot td:nth-child(2),
-.dv-tbl tfoot td:nth-child(3){
+.dv-tbl tfoot td:nth-child(3),
+.dv-tbl tfoot td:nth-child(4),
+.dv-tbl tfoot td:nth-child(5),
+.dv-tbl tfoot td:nth-child(6){
   position:sticky;z-index:15;background:#f8fafc;border-right:1px solid #e2e8f0;
 }
-.dv-tbl thead th:nth-child(1){ left:0;   z-index:26;min-width:140px }
-.dv-tbl thead th:nth-child(2){ left:140px;z-index:25 }
-.dv-tbl thead th:nth-child(3){ left:240px;z-index:24 }
-.dv-tbl tbody td:nth-child(1){ left:0;   background:#fff;font-weight:600;color:#0f172a;font-size:12px }
+.dv-tbl thead th:nth-child(1){ left:0;    z-index:26;min-width:140px }
+.dv-tbl thead th:nth-child(2){ left:140px;z-index:25;min-width:100px }
+.dv-tbl thead th:nth-child(3){ left:240px;z-index:24;min-width:110px }
+.dv-tbl thead th:nth-child(4){ left:350px;z-index:23;min-width:160px }
+.dv-tbl thead th:nth-child(5){ left:510px;z-index:22;min-width:140px }
+.dv-tbl thead th:nth-child(6){ left:650px;z-index:21;min-width:130px }
+.dv-tbl tbody td:nth-child(1){ left:0;    background:#fff;font-weight:600;color:#0f172a;font-size:12px }
 .dv-tbl tbody td:nth-child(2){ left:140px;background:#fff }
 .dv-tbl tbody td:nth-child(3){ left:240px;background:#fff }
-.dv-tbl tfoot td:nth-child(1){ left:0;   z-index:21;background:#f1f5f9 }
+.dv-tbl tbody td:nth-child(4){ left:350px;background:#fff }
+.dv-tbl tbody td:nth-child(5){ left:510px;background:#fff }
+.dv-tbl tbody td:nth-child(6){ left:650px;background:#fff }
+.dv-tbl tfoot td:nth-child(1){ left:0;    z-index:21;background:#f1f5f9 }
 .dv-tbl tfoot td:nth-child(2){ left:140px;z-index:20;background:#f1f5f9 }
+.dv-tbl tfoot td:nth-child(3){ left:240px;z-index:19;background:#f1f5f9 }
+.dv-tbl tfoot td:nth-child(4){ left:350px;z-index:18;background:#f1f5f9 }
+.dv-tbl tfoot td:nth-child(5){ left:510px;z-index:17;background:#f1f5f9 }
+.dv-tbl tfoot td:nth-child(6){ left:650px;z-index:16;background:#f1f5f9 }
 .dv-tbl tbody tr:hover td:nth-child(1),
-.dv-tbl tbody tr:hover td:nth-child(2){ background:#eff6ff }
+.dv-tbl tbody tr:hover td:nth-child(2),
+.dv-tbl tbody tr:hover td:nth-child(3),
+.dv-tbl tbody tr:hover td:nth-child(4),
+.dv-tbl tbody tr:hover td:nth-child(5),
+.dv-tbl tbody tr:hover td:nth-child(6){ background:#eff6ff }
 
 /* Centre-align all detail view cells and headers */
 .dv-tbl thead th{ text-align:center !important }
@@ -4192,13 +4219,19 @@ function getColumnsFromRecords(records, pageId, view) {
 // and "Estimated Profit%" (and the Actual Profit pair) both camelCase to
 // the SAME key in the push script and silently collide - flagged
 // separately, not fixed here since it doesn't affect Unbilled/Unposted.
+// First 6 columns are frozen (see .dv-tbl nth-child CSS) - order matches
+// what was requested: Job No., LOB, ETD/ETA New, Charge, Unbilled Revenue,
+// Unposted Cost, then everything else scrolls normally
 const DV_COLS_WIP_REVENUE = [
   { key:'shipmentId',        label:'Job No.'                             },
   { key:'lob',                label:'LOB'                                 },
+  { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
+  { key:'charge',            label:'Charge'                              },
+  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
+  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'salesPerson',       label:'Sales Person'                        },
-  { key:'charge',            label:'Charge'                              },
   { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
   { key:'bookedRevenue',     label:'Booked Revenue',    num:true         },
   { key:'actualRevenue',     label:'Actual Revenue',    num:true         },
@@ -4208,18 +4241,18 @@ const DV_COLS_WIP_REVENUE = [
   { key:'estimatedProfit',   label:'Estimated Profit',  num:true         },
   { key:'actualProfit',      label:'Actual Profit',     num:true         },
   { key:'financialLockDate', label:'Financial Lock Date', date:true      },
-  { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
-  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
-  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
 ];
 
 const DV_COLS_WIP_COST = [
   { key:'shipmentId',        label:'Job No.'                             },
   { key:'lob',                label:'LOB'                                 },
+  { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
+  { key:'charge',            label:'Charge'                              },
+  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
+  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'salesPerson',       label:'Sales Person'                        },
-  { key:'charge',            label:'Charge'                              },
   { key:'estimatedCost',     label:'Estimated Cost',    num:true         },
   { key:'bookedCost',        label:'Booked Cost',       num:true         },
   { key:'actualCost',        label:'Actual Cost',       num:true         },
@@ -4229,9 +4262,6 @@ const DV_COLS_WIP_COST = [
   { key:'estimatedProfit',   label:'Estimated Profit',  num:true         },
   { key:'actualProfit',      label:'Actual Profit',     num:true         },
   { key:'financialLockDate', label:'Financial Lock Date', date:true      },
-  { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
-  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
-  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
 ];
 
 function etdEtaColKey(row, view) {
@@ -4854,14 +4884,18 @@ function collapseAll(pageId) {
 // containerNo - no stored container ID field exists) were dropped rather
 // than left pointing at Indonesia/Thailand-only fields that would always
 // render blank.
+// First 5 columns are frozen (see .dv-tbl nth-child CSS) - order matches
+// what was requested: Shipment No, Direction, ETD/ETA New, Location, Job
+// Owner, then everything else scrolls normally
 const DV_COLS_TOTAL_JOBS = [
   { key:'shipmentId',        label:'Shipment No'                        },
+  { key:'direction',         label:'Direction'                          },
+  { key:'etdEtaNew',         label:'ETD/ETA New',    date:true          },
   { key:'location',          label:'Location'                           },
   { key:'jobOwner',          label:'Job Owner'                          },
   { key:'salesPerson',       label:'Sales Person'                       },
   { key:'customer',          label:'Customer'                           },
   { key:'cargoType',         label:'Cargo Type'                         },
-  { key:'direction',         label:'Direction'                          },
   { key:'lob',               label:'LOB'                                },
   { key:'etdLoadingPort',    label:'ETD Loading Port', date:true         },
   { key:'etaDischarge',      label:'ETA Discharge',  date:true          },
@@ -4882,13 +4916,14 @@ const DV_COLS_TOTAL_JOBS = [
 
 const DV_COLS_OPEN_JOBS = [
   { key:'shipmentId',        label:'Shipment No'                        },
+  { key:'direction',         label:'Direction'                          },
+  { key:'etdEtaNew',         label:'ETD/ETA New',    date:true          },
   { key:'location',          label:'Location'                           },
   { key:'jobOwner',          label:'Job Owner'                          },
   { key:'customer',          label:'Customer'                           },
   { key:'etdLoadingPort',    label:'ETD Loading Port', date:true         },
   { key:'jobDate',           label:'Job Date',       date:true          },
   { key:'cargoType',         label:'Cargo Type'                         },
-  { key:'direction',         label:'Direction'                          },
   { key:'lob',               label:'LOB'                                },
   { key:'loadingPort',       label:'Loading Port'                       },
   { key:'dischargePort',     label:'Discharge Port'                     },
@@ -4940,10 +4975,11 @@ const DV_COLS_LOW_PROFIT = [
 const DV_COLS_SRR = [
   { key:'shipmentId',          label:'Shipment No'                        },
   { key:'direction',           label:'Direction'                          },
-  { key:'cargoType',           label:'Cargo Type'                         },
+  { key:'etdEtaNew',           label:'ETD/ETA New',        date:true       },
   { key:'location',            label:'Location'                           },
-  { key:'customer',            label:'Customer'                           },
   { key:'jobOwner',            label:'Job Owner'                          },
+  { key:'cargoType',           label:'Cargo Type'                         },
+  { key:'customer',            label:'Customer'                           },
   { key:'salesPerson',         label:'Sales Person'                       },
   { key:'loadingPort',         label:'Loading Port'                       },
   { key:'originPortCountry',   label:'Origin Port Country'                },
