@@ -1223,17 +1223,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-summary"></div>
                 </div>
               </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-summary" onchange="renderSummary()">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('summary')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1303,13 +1292,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-open-jobs')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-open-jobs">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-open-jobs"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-open-jobs" onchange="renderPage('open-jobs')">
-                  <option value="">All</option><option value="Prepaid">Prepaid</option><option value="Collect">Collect</option><option value="Domestic Freight">Domestic Freight</option><option value="(blank)">(blank)</option>
-                </select>
               </div>
             </div>
           </div>
@@ -1414,13 +1396,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-total-jobs"></div>
                 </div>
               </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-total-jobs" onchange="renderPage('total-jobs')">
-                  <option value="">All</option><option value="Prepaid">Prepaid</option><option value="Collect">Collect</option><option value="Domestic Freight">Domestic Freight</option><option value="(blank)">(blank)</option>
-                </select>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('total-jobs')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1505,17 +1480,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-unbilled-rev')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-unbilled-rev">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-unbilled-rev"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-unbilled-rev" onchange="renderPage('unbilled-rev')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
               </div>
             </div>
           </div>
@@ -1616,17 +1580,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-trigger" onclick="toggleMs('owner-unposted-cost')" style="width:100%;box-sizing:border-box"><i class="ti ti-user ms-icon"></i><span class="ms-label" id="msl-owner-unposted-cost">All Owners</span><i class="ti ti-chevron-down ms-caret"></i></div>
                   <div class="ms-dropdown" id="msd-owner-unposted-cost"></div>
                 </div>
-              </div>
-              <div class="afp-divider"></div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">HBL Type</div>
-                <select class="add-filter-select" id="af-hbl-unposted-cost" onchange="renderPage('unposted-cost')">
-                  <option value="">All</option>
-                  <option value="Prepaid">Prepaid</option>
-                  <option value="Collect">Collect</option>
-                  <option value="Domestic Freight">Domestic Freight</option>
-                  <option value="(blank)">(blank)</option>
-                </select>
               </div>
             </div>
           </div>
@@ -2773,8 +2726,8 @@ function initGroups() {
 // pages (Admin/Teams/Usage/Tickets), so the filter chain never breaks
 let lastFilterPageDivId = null;
 
-// Carries the Report View (date range) and Add Filters (Zone/Branch/Owner/
-// HBL Type) settings from whichever page was previously active onto
+// Carries the Report View (date range) and Add Filters (Zone/Branch/Owner)
+// settings from whichever page was previously active onto
 // the page being switched to, matched purely by each page's id suffix on
 // pickerState/msState keys and element ids (e.g. "mp-from-summary" ->
 // "mp-from-open-jobs"). This makes filter changes universal across pages
@@ -2814,13 +2767,6 @@ function syncUniversalFilters(oldSuffix, newSuffix) {
       msState[newKey] = msState[oldKey] instanceof Set ? new Set(msState[oldKey]) : msState[oldKey];
       updateMsUI(newKey);
     }
-  });
-
-  // Add Filters panel: HBL Type plain select (MBL Type removed per request)
-  ['af-hbl-'].forEach(prefix => {
-    const oldEl = document.getElementById(prefix + oldSuffix);
-    const newEl = document.getElementById(prefix + newSuffix);
-    if (oldEl && newEl) newEl.value = oldEl.value;
   });
 }
 
@@ -2956,9 +2902,7 @@ function renderMonthPicker(id) {
 
   dd.innerHTML = `
     <div class="mp-header">
-      <button class="mp-nav" onclick="mpChangeYear('${id}',-1)">&#8249;</button>
       <select class="mp-year-select" onchange="mpSetYear('${id}',this.value)">${yearOpts}</select>
-      <button class="mp-nav" onclick="mpChangeYear('${id}',1)">&#8250;</button>
     </div>
     <div class="mp-grid">${gridHtml}</div>
     <button class="mp-today-btn" onclick="selectMonth('${id}',${now.getMonth()},${now.getFullYear()})">Today</button>`;
@@ -4464,7 +4408,7 @@ function _renderJPAFlaggedReport(pageId, s, flagLabel, label, view, cols, filter
   const tbody = document.getElementById('tbody-' + pageId); if (tbody) tbody.innerHTML = h;
 }
 
-// ── ADDITIONAL FILTERS (HBL Type) ────────────────
+// ── ADDITIONAL FILTERS (Branch/Owner panel - MBL/HBL Type removed) ────────────────
 function toggleAddFilters(pageId) {
   const panel = document.getElementById('afp-' + pageId);
   const btn   = document.getElementById('afb-' + pageId);
@@ -4499,30 +4443,18 @@ document.addEventListener('click', e => {
     document.querySelectorAll('.add-filters-panel.open').forEach(p => p.classList.remove('open'));
     document.querySelectorAll('.add-filters-btn').forEach(b => {
       const pageId = b.id.replace('afb-', '');
-      const hbl  = document.getElementById('af-hbl-' + pageId)?.value || '';
       const br   = msState['branch-' + pageId]?.size > 0;
       const own  = msState['owner-'  + pageId]?.size > 0;
-      b.classList.toggle('active', !!(hbl || br || own));
+      b.classList.toggle('active', !!(br || own));
     });
   }
 });
 
-// Apply HBL additional filter to a dataset (MBL Type filter removed per request)
+// MBL Type and HBL Type filters both removed per request - this is now a
+// no-op, kept only because it's still called from many render functions
+// throughout the codebase (applyAdditionalFilters(applyDropdownFilters(...))
 function applyAdditionalFilters(data, pageId) {
-  const hblEl = document.getElementById('af-hbl-' + pageId);
-  const hblVal = hblEl ? hblEl.value : '';
-
-  if (!hblVal) return data;
-
-  return data.filter(r => {
-    // HBL filter
-    if (hblVal) {
-      const rHbl = (r.hblType || '').trim();
-      if (hblVal === '(blank)') { if (rHbl !== '') return false; }
-      else if (rHbl !== hblVal) return false;
-    }
-    return true;
-  });
+  return data;
 }
 // State: msState[filterId] = Set of selected values (empty Set = "All")
 const msState = {};
