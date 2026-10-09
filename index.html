@@ -4171,74 +4171,300 @@ function getColumnsFromRecords(records, pageId, view) {
   return cols;
 }
 
+// ── DV_COLS for Unbilled Revenue / Unposted Cost drill-downs ──────────────
+// USA (ETD/ETA tab, charge-line level) - real field names from the Apps
+// Script's camelCase conversion of the ETD/ETA tab's actual headers
+const DV_COLS_WIP_REVENUE = [
+  { key:'shipmentId',        label:'Job #'                               },
+  { key:'charge',            label:'Charge'                              },
+  { key:'unbilledRevenue',   label:'Unbilled Revenue', num:true          },
+  { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
+  { key:'bookedRevenue',     label:'Booked Revenue',   num:true          },
+  { key:'financialLock',     label:'Financial Lock',   date:true         },
+  { key:'etdEtaNew',         label:'ETD/ETA',          date:true         },
+  { key:'lob',               label:'LOB'                                 },
+  { key:'location',          label:'Branch'                              },
+  { key:'organization',      label:'Organization'                        },
+  { key:'salesPerson',       label:'Sales Person'                        },
+];
+
+const DV_COLS_WIP_COST = [
+  { key:'shipmentId',        label:'Job #'                               },
+  { key:'charge',            label:'Charge'                              },
+  { key:'unpostedCost',      label:'Unposted Cost',    num:true          },
+  { key:'estimatedCost',     label:'Estimated Cost',   num:true          },
+  { key:'bookedCost',        label:'Booked Cost',      num:true          },
+  { key:'financialLock',     label:'Financial Lock',   date:true         },
+  { key:'etdEtaNew',         label:'ETD/ETA',          date:true         },
+  { key:'lob',               label:'LOB'                                 },
+  { key:'location',          label:'Branch'                              },
+  { key:'organization',      label:'Organization'                        },
+  { key:'salesPerson',       label:'Sales Person'                        },
+];
+
+// Same bucketing logic as getColKey(), but using etdEtaNew (the properly
+// 3-step-derived date) instead of jobDate, since the ETD/ETA tab's charge
+// lines need to bucket by shipment timing, not by when the charge line
+// itself was recorded
+function etdEtaColKey(row, view) {
+  const d = row.etdEtaNew ? new Date(row.etdEtaNew) : null;
+  if (!d || isNaN(d)) return null;
+  if (view === 'weekly') {
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dow = day.getDay();
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    day.setDate(day.getDate() + diff);
+    return day.toISOString().slice(0,10);
+  }
+  if (view === 'yearly') return 'cy-' + d.getFullYear();
+  if (view === 'quarterly') {
+    const mo = d.getMonth();
+    const qVal = mo <= 2 ? 1 : mo <= 5 ? 2 : mo <= 8 ? 3 : 4;
+    return 'q' + qVal + '-cy-' + d.getFullYear();
+  }
+  if (view === 'custom') return 'custom';
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+
+function etdEtaMatchesDirection(r) {
+  const lob = (r.lob || '').toUpperCase();
+  return currentDirection === 'Export' ? lob.indexOf('EXPORT') !== -1 : lob.indexOf('IMPORT') !== -1;
+}
+
+function filterEtdEtaByDate(records, pageId) {
+  const { from, to } = getDateRange(pageId);
+  return (records || []).filter(r => {
+    if (!etdEtaMatchesDirection(r)) return false;
+    const d = r.etdEtaNew ? new Date(r.etdEtaNew) : null;
+    return d && !isNaN(d) && d >= from && d <= to;
+  });
+}
+
+// ── RENDER: Unbilled Revenue ───────────────────────────────────────────────
 function renderUnbilledRev() {
   const pageId = 'unbilled-rev';
   const { cols, label, view } = getColumns(pageId);
   const _kpiRow = document.querySelector('#page-unbilled-rev .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered   = filterByDate(allSRR, pageId);
-  populateFilters(pageId, filtered);
-  const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
 
-  // Use WIP data — flag shipments that have any WIP line > 0
-  const wipByShipment = {};
-  (rawWIP || []).forEach(w => {
-    if (w.wip > 0) {
-      if (!wipByShipment[w.shipmentId]) wipByShipment[w.shipmentId] = [];
-      wipByShipment[w.shipmentId].push(w);
-    }
+  const filteredDD = filterEtdEtaByDate(rawWIP, pageId);
+
+  // KPI 1 (blue): count of unique shipments with charge lines in this period
+  const uniqueShipments = new Set(filteredDD.map(r => r.shipmentId));
+  const totalJobs = uniqueShipments.size;
+
+  // KPI 2 (orange): total dollar sum of Unbilled Revenue across all charge lines
+  const totalUnbilled = filteredDD.reduce((sum, r) => sum + (Number(r.unbilledRevenue) || 0), 0);
+
+  // KPI 3 (red): unique shipments with a nonzero Unbilled Revenue on any
+  // charge line, as a % of total unique shipments
+  const unbilledByShipment = {};
+  filteredDD.forEach(r => {
+    unbilledByShipment[r.shipmentId] = (unbilledByShipment[r.shipmentId] || 0) + (Number(r.unbilledRevenue) || 0);
+  });
+  const uniqueUnbilledShipments = Object.keys(unbilledByShipment).filter(id => unbilledByShipment[id] > 0).length;
+  const pct = totalJobs > 0 ? ((uniqueUnbilledShipments / totalJobs) * 100).toFixed(1) : '0.0';
+
+  const kTotal = document.getElementById('kv-ur-total');
+  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,'DV_COLS_WIP_REVENUE'); }
+  const kFlagged = document.getElementById('kv-ur-flagged');
+  if (kFlagged) { kFlagged.textContent = '$' + totalUnbilled.toLocaleString(undefined,{maximumFractionDigits:0}); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(filteredDD.filter(r=>(Number(r.unbilledRevenue)||0)>0),'Unbilled Revenue',label,'DV_COLS_WIP_REVENUE'); }
+  const kPct = document.getElementById('kv-ur-pct');
+  if (kPct) kPct.textContent = pct + '%';
+  const kPeriod = document.getElementById('kv-ur-period'); if (kPeriod) kPeriod.textContent = label;
+  const kPctSub = document.getElementById('kv-ur-pct-sub'); if (kPctSub) kPctSub.textContent = uniqueUnbilledShipments + ' of ' + totalJobs + ' jobs';
+
+  // Branch / Sales Person × Month grid - cells show dollar sums
+  const flaggedMap = {};
+  function addAmt(br, ow, ck, amt) {
+    if (!flaggedMap[br]) flaggedMap[br] = {};
+    if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
+    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + amt;
+  }
+  filteredDD.forEach(r => {
+    addAmt(r.location || '(No Branch)', r.salesPerson || '(Unknown)', etdEtaColKey(r, view) || 'other', Number(r.unbilledRevenue) || 0);
   });
 
-  // Only show jobs whose ETD is older than 3 days — jobs shipped within
-  // the last 3 days are still inside the normal billing grace window
-  const urCutoff = new Date();
-  urCutoff.setHours(0,0,0,0);
-  urCutoff.setDate(urCutoff.getDate() - 3);
-
-  // Flag shipments that have WIP > 0 AND ETD older than the cutoff
-  const flaggedDD = filteredDD.filter(r => {
-    if (!wipByShipment[r.shipmentId] || wipByShipment[r.shipmentId].length === 0) return false;
-    const etd = r.etdDate ? new Date(r.etdDate) : null;
-    return etd && etd < urCutoff;
+  const gtFlagged = {}; cols.forEach(c => { gtFlagged[c.key] = 0; });
+  let gtFlaggedGrand = 0;
+  const colKeyFn = r => etdEtaColKey(r, view) || 'other';
+  filteredDD.forEach(r => {
+    const ck = colKeyFn(r);
+    const amt = Number(r.unbilledRevenue) || 0;
+    if (gtFlagged[ck] !== undefined) gtFlagged[ck] += amt;
+    gtFlaggedGrand += amt;
   });
 
-  _renderSRRFlaggedWip(pageId, 'ur', 'Revenue Not Billed', label, view, getColumns(pageId).cols, filteredDD, flaggedDD, wipByShipment, DV_COLS_WIP_REVENUE);
+  const isSingle = (cols.length === 1 && cols[0].single) || !showGrandTotal(view);
+  const tbl = document.getElementById('tbl-unbilled-rev');
+  if (tbl) tbl.classList.toggle('single-col', isSingle);
+  const thead = document.getElementById('thead-unbilled-rev');
+  if (thead) thead.innerHTML = '<th style="min-width:260px">Branch / Sales Person</th>' +
+    (isSingle ? '' : '<th class="col-grand">Grand Total</th>') +
+    cols.map(c => `<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
+
+  let h = '';
+  const gtFlagId = dvReg(filteredDD);
+  h += `<tr class="gt-block">
+    <td style="padding-left:10px"><i class="rc open" id="rc-gt" onclick="toggleRows('gt',event)">▼</i> <strong>GRAND TOTAL</strong></td>
+    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtFlagId}','Grand Total — Unbilled Revenue','${label}','DV_COLS_WIP_REVENUE')">$${gtFlaggedGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
+    ${colCells(gtFlagged, filteredDD, cols, colKeyFn, 'Grand Total — Unbilled Revenue', label, 'DV_COLS_WIP_REVENUE')}
+  </tr>
+  <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
+
+  const sortedBranches = Object.keys(flaggedMap).sort();
+  sortedBranches.forEach((br, bi) => {
+    const bKey = 'b' + bi;
+    const owMap = flaggedMap[br] || {};
+    const brRecs = filteredDD.filter(r => (r.location || '(No Branch)') === br);
+    const brId = dvReg(brRecs);
+    const safeBr = br.replace(/'/g, "\\'");
+
+    const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; });
+    let brGrand = 0;
+    Object.values(owMap).forEach(owCols => {
+      cols.forEach(c => { brFl[c.key] += (owCols[c.key] || 0); });
+      brGrand += Object.values(owCols).reduce((a,b) => a+b, 0);
+    });
+
+    const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
+    h += `<tr class="br-row">
+      <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
+      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — Unbilled Revenue','${label}','DV_COLS_WIP_REVENUE')">$${brGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
+      ${colCells(brFl, brRecs, cols, colKeyFn, safeBr+' — Unbilled Revenue', label, 'DV_COLS_WIP_REVENUE')}
+    </tr>`;
+
+    Object.keys(owMap).sort().forEach((ow, oi) => {
+      const owKey = bKey + 'o' + oi;
+      const owCols = owMap[ow] || {};
+      const owRecs = brRecs.filter(r => (r.salesPerson || '(Unknown)') === ow);
+      const owId = dvReg(owRecs);
+      const safeOw = ow.replace(/'/g, "\\'");
+      let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
+      const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
+      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
+        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
+        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — Unbilled Revenue','${label}','DV_COLS_WIP_REVENUE')">$${owGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
+        ${colCells(owCols, owRecs, cols, colKeyFn, safeOw+' — Unbilled Revenue', label, 'DV_COLS_WIP_REVENUE')}
+      </tr>`;
+    });
+  });
+
+  if (!sortedBranches.length) h = '<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No data for this period.</td></tr>';
+  const tbody = document.getElementById('tbody-unbilled-rev'); if (tbody) tbody.innerHTML = h;
+  const sc = document.getElementById('sc-unbilled-rev'); if (sc) sc.textContent = totalJobs.toLocaleString()+' jobs · $'+totalUnbilled.toLocaleString(undefined,{maximumFractionDigits:0})+' unbilled';
 }
 
-// ── RENDER: Cost not posted within 7 days of SOB ────────────────────────
+// ── RENDER: Unposted Cost ──────────────────────────────────────────────────
 function renderUnpostedCost() {
   const pageId = 'unposted-cost';
   const { cols, label, view } = getColumns(pageId);
   const _kpiRow = document.querySelector('#page-unposted-cost .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered   = filterByDate(allSRR, pageId);
-  populateFilters(pageId, filtered);
-  const filteredDD = applyAdditionalFilters(applyDropdownFilters(filtered, pageId), pageId);
 
-  // Use WIP data — flag shipments that have any accrual line !== 0 (include negatives)
-  const accrualByShipment = {};
-  (rawWIP || []).forEach(w => {
-    if (w.accrual !== 0 && w.accrual !== undefined && w.accrual !== null) {
-      if (!accrualByShipment[w.shipmentId]) accrualByShipment[w.shipmentId] = [];
-      accrualByShipment[w.shipmentId].push(w);
-    }
+  const filteredDD = filterEtdEtaByDate(rawWIP, pageId);
+
+  const uniqueShipments = new Set(filteredDD.map(r => r.shipmentId));
+  const totalJobs = uniqueShipments.size;
+
+  const totalUnposted = filteredDD.reduce((sum, r) => sum + (Number(r.unpostedCost) || 0), 0);
+
+  const unpostedByShipment = {};
+  filteredDD.forEach(r => {
+    unpostedByShipment[r.shipmentId] = (unpostedByShipment[r.shipmentId] || 0) + (Number(r.unpostedCost) || 0);
+  });
+  const uniqueUnpostedShipments = Object.keys(unpostedByShipment).filter(id => unpostedByShipment[id] > 0).length;
+  const pct = totalJobs > 0 ? ((uniqueUnpostedShipments / totalJobs) * 100).toFixed(1) : '0.0';
+
+  const kTotal = document.getElementById('kv-uc-total');
+  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,'DV_COLS_WIP_COST'); }
+  const kFlagged = document.getElementById('kv-uc-flagged');
+  if (kFlagged) { kFlagged.textContent = '$' + totalUnposted.toLocaleString(undefined,{maximumFractionDigits:0}); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(filteredDD.filter(r=>(Number(r.unpostedCost)||0)>0),'Unposted Cost',label,'DV_COLS_WIP_COST'); }
+  const kPct = document.getElementById('kv-uc-pct');
+  if (kPct) kPct.textContent = pct + '%';
+  const kPeriod = document.getElementById('kv-uc-period'); if (kPeriod) kPeriod.textContent = label;
+  const kPctSub = document.getElementById('kv-uc-pct-sub'); if (kPctSub) kPctSub.textContent = uniqueUnpostedShipments + ' of ' + totalJobs + ' jobs';
+
+  const flaggedMap = {};
+  function addAmt(br, ow, ck, amt) {
+    if (!flaggedMap[br]) flaggedMap[br] = {};
+    if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
+    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + amt;
+  }
+  filteredDD.forEach(r => {
+    addAmt(r.location || '(No Branch)', r.salesPerson || '(Unknown)', etdEtaColKey(r, view) || 'other', Number(r.unpostedCost) || 0);
   });
 
-  // Only show jobs whose ETD is older than 7 days — jobs shipped within
-  // the last 7 days are still inside the normal cost-posting grace window
-  const ucCutoff = new Date();
-  ucCutoff.setHours(0,0,0,0);
-  ucCutoff.setDate(ucCutoff.getDate() - 7);
-
-  // Flag shipments that have accrual !== 0 AND ETD older than the cutoff
-  const flaggedDD = filteredDD.filter(r => {
-    if (!accrualByShipment[r.shipmentId] || accrualByShipment[r.shipmentId].length === 0) return false;
-    const etd = r.etdDate ? new Date(r.etdDate) : null;
-    return etd && etd < ucCutoff;
+  const gtFlagged = {}; cols.forEach(c => { gtFlagged[c.key] = 0; });
+  let gtFlaggedGrand = 0;
+  const colKeyFn = r => etdEtaColKey(r, view) || 'other';
+  filteredDD.forEach(r => {
+    const ck = colKeyFn(r);
+    const amt = Number(r.unpostedCost) || 0;
+    if (gtFlagged[ck] !== undefined) gtFlagged[ck] += amt;
+    gtFlaggedGrand += amt;
   });
 
-  _renderSRRFlaggedWip(pageId, 'uc', 'Cost Not Posted', label, view, getColumns(pageId).cols, filteredDD, flaggedDD, accrualByShipment, DV_COLS_WIP_COST);
+  const isSingle = (cols.length === 1 && cols[0].single) || !showGrandTotal(view);
+  const tbl = document.getElementById('tbl-unposted-cost');
+  if (tbl) tbl.classList.toggle('single-col', isSingle);
+  const thead = document.getElementById('thead-unposted-cost');
+  if (thead) thead.innerHTML = '<th style="min-width:260px">Branch / Sales Person</th>' +
+    (isSingle ? '' : '<th class="col-grand">Grand Total</th>') +
+    cols.map(c => `<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
+
+  let h = '';
+  const gtFlagId = dvReg(filteredDD);
+  h += `<tr class="gt-block">
+    <td style="padding-left:10px"><i class="rc open" id="rc-gt" onclick="toggleRows('gt',event)">▼</i> <strong>GRAND TOTAL</strong></td>
+    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtFlagId}','Grand Total — Unposted Cost','${label}','DV_COLS_WIP_COST')">$${gtFlaggedGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
+    ${colCells(gtFlagged, filteredDD, cols, colKeyFn, 'Grand Total — Unposted Cost', label, 'DV_COLS_WIP_COST')}
+  </tr>
+  <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
+
+  const sortedBranches = Object.keys(flaggedMap).sort();
+  sortedBranches.forEach((br, bi) => {
+    const bKey = 'b' + bi;
+    const owMap = flaggedMap[br] || {};
+    const brRecs = filteredDD.filter(r => (r.location || '(No Branch)') === br);
+    const brId = dvReg(brRecs);
+    const safeBr = br.replace(/'/g, "\\'");
+
+    const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; });
+    let brGrand = 0;
+    Object.values(owMap).forEach(owCols => {
+      cols.forEach(c => { brFl[c.key] += (owCols[c.key] || 0); });
+      brGrand += Object.values(owCols).reduce((a,b) => a+b, 0);
+    });
+
+    const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
+    h += `<tr class="br-row">
+      <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
+      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — Unposted Cost','${label}','DV_COLS_WIP_COST')">$${brGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
+      ${colCells(brFl, brRecs, cols, colKeyFn, safeBr+' — Unposted Cost', label, 'DV_COLS_WIP_COST')}
+    </tr>`;
+
+    Object.keys(owMap).sort().forEach((ow, oi) => {
+      const owKey = bKey + 'o' + oi;
+      const owCols = owMap[ow] || {};
+      const owRecs = brRecs.filter(r => (r.salesPerson || '(Unknown)') === ow);
+      const owId = dvReg(owRecs);
+      const safeOw = ow.replace(/'/g, "\\'");
+      let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
+      const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
+      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
+        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
+        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — Unposted Cost','${label}','DV_COLS_WIP_COST')">$${owGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
+        ${colCells(owCols, owRecs, cols, colKeyFn, safeOw+' — Unposted Cost', label, 'DV_COLS_WIP_COST')}
+      </tr>`;
+    });
+  });
+
+  if (!sortedBranches.length) h = '<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No data for this period.</td></tr>';
+  const tbody = document.getElementById('tbody-unposted-cost'); if (tbody) tbody.innerHTML = h;
+  const sc = document.getElementById('sc-unposted-cost'); if (sc) sc.textContent = totalJobs.toLocaleString()+' jobs · $'+totalUnposted.toLocaleString(undefined,{maximumFractionDigits:0})+' unposted';
 }
+
 
 // ── Shared JPA flagged report renderer ───────────────────────
 function _renderJPAFlaggedReport(pageId, s, flagLabel, label, view, cols, filteredDD, flaggedDD) {
@@ -4607,12 +4833,9 @@ async function refreshData(pageId) {
     allUsers  = data.users      || [];
     allSRR   = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase());
     allJPA   = [];
-    // Load WIP data
-    try {
-      const wipResp = await fetch(WIP_API + '?t=' + Date.now(), { method:'GET' });
-      const wipData = await wipResp.json();
-      rawWIP = wipData.records || [];
-    } catch(e) { console.warn('WIP load error:', e); rawWIP = []; }
+    // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
+    // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
+    rawWIP = data.etdEta || [];
     applyRLS();
     initFilters(pageId);
     renderPage(pageId);
@@ -4764,56 +4987,7 @@ const DV_COLS_LOW_PROFIT = [
 ];
 
 // WIP cols reordered for Revenue Not Billed
-const DV_COLS_WIP_REVENUE = [
-  { key:'shipmentId',    label:'Job #'                              },
-  { key:'chargeCode',    label:'Charge'                             },
-  { key:'wip',           label:'WIP',          num:true             },
-  { key:'revenue',       label:'Revenue',      num:true             },
-  { key:'accrual',       label:'Accrual',      num:true             },
-  { key:'invoiceNumber', label:'Invoice Number'                     },
-  { key:'recognized',    label:'Recognized',   date:true            },
-  { key:'chargeType',    label:'Type'                               },
-  { key:'cost',          label:'Cost',         num:true             },
-  { key:'jobProfit',     label:'Job Profit',   num:true             },
-  { key:'lob',           label:'LOB'                                },
-  { key:'etdEta',        label:'ETD/ETA',      date:true            },
-  { key:'etd',           label:'ETD',          date:true            },
-  { key:'eta',           label:'ETA',          date:true            },
-  { key:'localRef',      label:'Job Local Ref'                      },
-  { key:'trans',         label:'Trans'                              },
-  { key:'cont',          label:'Cont'                               },
-  { key:'jobBranch',     label:'Job Branch'                         },
-  { key:'jobDept',       label:'Job Dept'                           },
-  { key:'jobStatus',     label:'Job Status'                         },
-  { key:'localClient',   label:'Local Client'                       },
-  { key:'operator',      label:'Job Operator'                       },
-];
-
-// WIP cols reordered for Cost Not Posted
-const DV_COLS_WIP_COST = [
-  { key:'shipmentId',    label:'Job #'                              },
-  { key:'chargeCode',    label:'Charge'                             },
-  { key:'accrual',       label:'Accrual',      num:true             },
-  { key:'cost',          label:'Cost',         num:true             },
-  { key:'wip',           label:'WIP',          num:true             },
-  { key:'revenue',       label:'Revenue',      num:true             },
-  { key:'invoiceNumber', label:'Invoice Number'                     },
-  { key:'recognized',    label:'Recognized',   date:true            },
-  { key:'chargeType',    label:'Type'                               },
-  { key:'jobProfit',     label:'Job Profit',   num:true             },
-  { key:'lob',           label:'LOB'                                },
-  { key:'etdEta',        label:'ETD/ETA',      date:true            },
-  { key:'etd',           label:'ETD',          date:true            },
-  { key:'eta',           label:'ETA',          date:true            },
-  { key:'localRef',      label:'Job Local Ref'                      },
-  { key:'trans',         label:'Trans'                              },
-  { key:'cont',          label:'Cont'                               },
-  { key:'jobBranch',     label:'Job Branch'                         },
-  { key:'jobDept',       label:'Job Dept'                           },
-  { key:'jobStatus',     label:'Job Status'                         },
-  { key:'localClient',   label:'Local Client'                       },
-  { key:'operator',      label:'Job Operator'                       },
-];
+// DV_COLS_WIP_REVENUE / DV_COLS_WIP_COST now defined further up, alongside the new renderUnbilledRev()/renderUnpostedCost()
 
 // ── DETAIL VIEW ENGINE ────────────────────────────────────────
 // SRR columns
@@ -5522,13 +5696,10 @@ async function loadData() {
     // Filter by current direction
     allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
     allJPA = [...rawJPA];
-    // Load WIP data
-    try {
-      const wipResp = await fetch(WIP_API + '?t=' + Date.now(), { method:'GET' });
-      const wipData = await wipResp.json();
-      rawWIP = wipData.records || [];
-      console.log('[loadData] WIP records:', rawWIP.length);
-    } catch(e) { console.warn('WIP load error:', e); rawWIP = []; }
+    // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
+    // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
+    rawWIP = data.etdEta || [];
+    console.log('[loadData] ETD/ETA records:', rawWIP.length);
     applyRLS();
     setTimeout(updateMainMetricsBadges, 500);
     setTimeout(markDataUpdated, 500);
