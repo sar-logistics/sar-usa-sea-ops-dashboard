@@ -5141,12 +5141,17 @@ function updateRateLabel() {
 }
 
 function fmtIndian(n) {
-  const rate = getExchangeRate();
-  const converted = n / rate;
-  const abs = Math.abs(converted);
-  const sign = converted < 0 ? '-' : '';
-  const sym = getCurrencySymbol();
-  return sign + sym + abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  // USA's sheet data is already in USD - no exchange-rate conversion needed
+  // or wanted. This function (and the whole getExchangeRate()/manualRate/
+  // currentCurrency system) was carried over from Indonesia's codebase,
+  // where raw sheet values are in IDR and needed converting/displaying in
+  // USD via a manual rate. Applying that same division here was silently
+  // shrinking every real dollar value by a factor of ~17500 (e.g. a real
+  // $8,252 displayed as "$0.47") - fixed by never dividing at all,
+  // regardless of currentCurrency/manualRate's state.
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
 function formatDvDate(v) {
