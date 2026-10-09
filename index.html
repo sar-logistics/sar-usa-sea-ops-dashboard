@@ -5514,7 +5514,7 @@ function renderDvBody() {
   tbody.innerHTML = dvFiltered.map((r, i) => {
     const prev = dvFiltered[i - 1];
     const isNewShipment = !prev || r.shipmentId !== prev.shipmentId;
-    const extraBorder = isNewShipment ? 'border-top:1px dashed #cbd5e1;' : '';
+    const extraBorder = isNewShipment ? 'border-top:1px dashed #94a3b8;' : '';
     return `<tr>${dvCols.map(c => {
       const align = (c.num || c.pct) ? 'text-align:right;' : '';
       const styleAttr = (align || extraBorder) ? ` style="${align}${extraBorder}"` : '';
