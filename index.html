@@ -4350,7 +4350,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
   let h = `<tr class="gt-block">
     <td style="padding-left:10px"><i class="rc open" id="rc-gt-${s}" onclick="toggleRows('gt-${s}',event)">▼</i> <strong>GRAND TOTAL</strong></td>
     ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtId}','Grand Total — ${flagLabel}','${label}','${colSetName}')">${gtFlGrand > 0 ? gtFlGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-    ${colCells(gtFl, flaggedShipments, cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSetName)}
+    ${colCells(gtFl, flaggedShipments.flatMap(sh => sh.lines), cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSetName)}
   </tr>
   <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
 
@@ -4373,7 +4373,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
     h += `<tr class="br-row">
       <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
       ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — ${flagLabel}','${label}','${colSetName}')">${brGrand > 0 ? brGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-      ${colCells(brFl, brShipments, cols, colKeyFn, safeBr+' — '+flagLabel, label, colSetName)}
+      ${colCells(brFl, brShipments.flatMap(sh => sh.lines), cols, colKeyFn, safeBr+' — '+flagLabel, label, colSetName)}
     </tr>`;
 
     Object.keys(owMap).sort().forEach((ow, oi) => {
@@ -4388,7 +4388,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
       h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
         <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
         ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — ${flagLabel}','${label}','${colSetName}')">${owGrand > 0 ? owGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-        ${colCells(owCols, owShipments, cols, colKeyFn, safeOw+' — '+flagLabel, label, colSetName)}
+        ${colCells(owCols, owShipments.flatMap(sh => sh.lines), cols, colKeyFn, safeOw+' — '+flagLabel, label, colSetName)}
       </tr>`;
     });
   });
