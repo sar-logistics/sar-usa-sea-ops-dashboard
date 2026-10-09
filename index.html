@@ -4175,36 +4175,57 @@ function getColumnsFromRecords(records, pageId, view) {
 // USA (ETD/ETA tab, charge-line level) - real field names from the Apps
 // Script's camelCase conversion of the ETD/ETA tab's actual headers
 // ── DV_COLS for Unbilled Revenue / Unposted Cost drill-downs ──────────────
+// ── DV_COLS for Unbilled Revenue / Unposted Cost drill-downs ──────────────
+// Full real ETD/ETA tab column set, in the tab's own actual order, not a
+// cherry-picked subset. Note: "estimatedProfit"/"actualProfit" below may
+// show the %-value rather than the dollar value, since "Estimated Profit"
+// and "Estimated Profit%" (and the Actual Profit pair) both camelCase to
+// the SAME key in the push script and silently collide - flagged
+// separately, not fixed here since it doesn't affect Unbilled/Unposted.
 const DV_COLS_WIP_REVENUE = [
-  { key:'shipmentId',        label:'Job #'                               },
-  { key:'charge',            label:'Charge'                              },
-  { key:'unbilledRevenue',   label:'Unbilled Revenue', num:true          },
-  { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
-  { key:'bookedRevenue',     label:'Booked Revenue',   num:true          },
-  { key:'financialLock',     label:'Financial Lock',   date:true         },
-  { key:'etdEtaNew',         label:'ETD/ETA',          date:true         },
-  { key:'lob',               label:'LOB'                                 },
-  { key:'location',          label:'Branch'                              },
+  { key:'shipmentId',        label:'Job No.'                             },
+  { key:'lob',                label:'LOB'                                 },
+  { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'salesPerson',       label:'Sales Person'                        },
+  { key:'charge',            label:'Charge'                              },
+  { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
+  { key:'bookedRevenue',     label:'Booked Revenue',    num:true         },
+  { key:'actualRevenue',     label:'Actual Revenue',    num:true         },
+  { key:'estimatedCost',     label:'Estimated Cost',    num:true         },
+  { key:'bookedCost',        label:'Booked Cost',       num:true         },
+  { key:'actualCost',        label:'Actual Cost',       num:true         },
+  { key:'estimatedProfit',   label:'Estimated Profit',  num:true         },
+  { key:'actualProfit',      label:'Actual Profit',     num:true         },
+  { key:'ataAtd',             label:'ATA/ATD',           date:true        },
+  { key:'financialLock',     label:'Financial Lock',    date:true        },
+  { key:'etdEtaNew',         label:'ETD/ETA',           date:true        },
+  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
+  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
 ];
 
 const DV_COLS_WIP_COST = [
-  { key:'shipmentId',        label:'Job #'                               },
-  { key:'charge',            label:'Charge'                              },
-  { key:'unpostedCost',      label:'Unposted Cost',    num:true          },
-  { key:'estimatedCost',     label:'Estimated Cost',   num:true          },
-  { key:'bookedCost',        label:'Booked Cost',      num:true          },
-  { key:'financialLock',     label:'Financial Lock',   date:true         },
-  { key:'etdEtaNew',         label:'ETD/ETA',          date:true         },
-  { key:'lob',               label:'LOB'                                 },
-  { key:'location',          label:'Branch'                              },
+  { key:'shipmentId',        label:'Job No.'                             },
+  { key:'lob',                label:'LOB'                                 },
+  { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'salesPerson',       label:'Sales Person'                        },
+  { key:'charge',            label:'Charge'                              },
+  { key:'estimatedCost',     label:'Estimated Cost',    num:true         },
+  { key:'bookedCost',        label:'Booked Cost',       num:true         },
+  { key:'actualCost',        label:'Actual Cost',       num:true         },
+  { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
+  { key:'bookedRevenue',     label:'Booked Revenue',    num:true         },
+  { key:'actualRevenue',     label:'Actual Revenue',    num:true         },
+  { key:'estimatedProfit',   label:'Estimated Profit',  num:true         },
+  { key:'actualProfit',      label:'Actual Profit',     num:true         },
+  { key:'ataAtd',             label:'ATA/ATD',           date:true        },
+  { key:'financialLock',     label:'Financial Lock',    date:true        },
+  { key:'etdEtaNew',         label:'ETD/ETA',           date:true        },
+  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
+  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
 ];
 
-// Same bucketing logic as getColKey(), but using etdEtaNew (the properly
-// 3-step-derived date) instead of jobDate
 function etdEtaColKey(row, view) {
   const d = row.etdEtaNew ? new Date(row.etdEtaNew) : null;
   if (!d || isNaN(d)) return null;
@@ -4239,10 +4260,6 @@ function filterEtdEtaByDate(records, pageId) {
   });
 }
 
-// Groups charge lines (filteredDD) by shipmentId, building one summary
-// record per shipment: { shipmentId, location, salesPerson, etdEtaNew,
-// sumField, lines: [...] }. sumField is either 'unbilledRevenue' or
-// 'unpostedCost', whichever this page cares about.
 function groupEtdEtaByShipment(filteredDD, sumField) {
   const byShipment = {};
   filteredDD.forEach(r => {
@@ -4262,10 +4279,13 @@ function groupEtdEtaByShipment(filteredDD, sumField) {
   return Object.values(byShipment);
 }
 
-// ── Shared renderer for both Unbilled Revenue and Unposted Cost - matches
-// Indonesia's shipment-COUNT model exactly (not dollar amounts), with
-// charge-line-level drill-through on click, per explicit confirmation ──────
-function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
+// colSetName is the STRING ('DV_COLS_WIP_REVENUE'/'DV_COLS_WIP_COST') used
+// by dvOpen() (grid cell clicks, which resolve it internally via colSetMap).
+// colSetArr is the ACTUAL ARRAY, needed for direct openDrill() calls (KPI
+// card clicks) - openDrill()'s colSet parameter expects the array itself,
+// not a string name; passing the string there was the bug causing the
+// wrong/broken drill-through on KPI clicks.
+function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSetArr) {
   const { cols, label, view } = getColumns(pageId);
   const _kpiRow = document.querySelector('#page-' + pageId + ' .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
@@ -4278,20 +4298,18 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
   const flaggedCount = flaggedShipments.length;
   const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
 
-  // Charge-line records belonging to flagged shipments, for drill-through
   const flaggedLines = flaggedShipments.flatMap(sh => sh.lines);
 
   const kTotal = document.getElementById('kv-' + s + '-total');
-  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,colSet); }
+  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,colSetArr); }
   const kFlagged = document.getElementById('kv-' + s + '-flagged');
-  if (kFlagged) { kFlagged.textContent = flaggedCount.toLocaleString(); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(flaggedLines,flagLabel,label,colSet); }
+  if (kFlagged) { kFlagged.textContent = flaggedCount.toLocaleString(); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(flaggedLines,flagLabel,label,colSetArr); }
   const kPct = document.getElementById('kv-' + s + '-pct');
-  if (kPct) { kPct.textContent = pct+'%'; kPct.style.cursor='pointer'; kPct.onclick=()=>openDrill(flaggedLines,flagLabel,label,colSet); }
+  if (kPct) { kPct.textContent = pct+'%'; kPct.style.cursor='pointer'; kPct.onclick=()=>openDrill(flaggedLines,flagLabel,label,colSetArr); }
   const kPeriod = document.getElementById('kv-' + s + '-period'); if (kPeriod) kPeriod.textContent = label;
   const kSub = document.getElementById('kv-' + s + '-pct-sub'); if (kSub) kSub.textContent = flaggedCount + ' of ' + totalJobs + ' jobs';
   const sc = document.getElementById('sc-' + pageId); if (sc) sc.textContent = totalJobs.toLocaleString() + ' total · ' + flaggedCount.toLocaleString() + ' flagged';
 
-  // Branch / Sales Person × Month grid - COUNT of flagged shipments per cell
   const flaggedMap = {};
   flaggedShipments.forEach(sh => {
     const br = sh.location, ow = sh.salesPerson;
@@ -4321,8 +4339,8 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
   const gtId = dvReg(gtLines);
   let h = `<tr class="gt-block">
     <td style="padding-left:10px"><i class="rc open" id="rc-gt-${s}" onclick="toggleRows('gt-${s}',event)">▼</i> <strong>GRAND TOTAL</strong></td>
-    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtId}','Grand Total — ${flagLabel}','${label}','${colSet}')">${gtFlGrand > 0 ? gtFlGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-    ${colCells(gtFl, flaggedShipments, cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSet)}
+    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtId}','Grand Total — ${flagLabel}','${label}','${colSetName}')">${gtFlGrand > 0 ? gtFlGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
+    ${colCells(gtFl, flaggedShipments, cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSetName)}
   </tr>
   <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
 
@@ -4344,8 +4362,8 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
     const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
     h += `<tr class="br-row">
       <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
-      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — ${flagLabel}','${label}','${colSet}')">${brGrand > 0 ? brGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-      ${colCells(brFl, brShipments, cols, colKeyFn, safeBr+' — '+flagLabel, label, colSet)}
+      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — ${flagLabel}','${label}','${colSetName}')">${brGrand > 0 ? brGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
+      ${colCells(brFl, brShipments, cols, colKeyFn, safeBr+' — '+flagLabel, label, colSetName)}
     </tr>`;
 
     Object.keys(owMap).sort().forEach((ow, oi) => {
@@ -4359,8 +4377,8 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
       const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
       h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
         <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
-        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — ${flagLabel}','${label}','${colSet}')">${owGrand > 0 ? owGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-        ${colCells(owCols, owShipments, cols, colKeyFn, safeOw+' — '+flagLabel, label, colSet)}
+        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — ${flagLabel}','${label}','${colSetName}')">${owGrand > 0 ? owGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
+        ${colCells(owCols, owShipments, cols, colKeyFn, safeOw+' — '+flagLabel, label, colSetName)}
       </tr>`;
     });
   });
@@ -4370,12 +4388,13 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
 }
 
 function renderUnbilledRev() {
-  _renderEtdEtaFlagged('unbilled-rev', 'ur', 'Unbilled Revenue', 'unbilledRevenue', 'DV_COLS_WIP_REVENUE');
+  _renderEtdEtaFlagged('unbilled-rev', 'ur', 'Unbilled Revenue', 'unbilledRevenue', 'DV_COLS_WIP_REVENUE', DV_COLS_WIP_REVENUE);
 }
 
 function renderUnpostedCost() {
-  _renderEtdEtaFlagged('unposted-cost', 'uc', 'Unposted Cost', 'unpostedCost', 'DV_COLS_WIP_COST');
+  _renderEtdEtaFlagged('unposted-cost', 'uc', 'Unposted Cost', 'unpostedCost', 'DV_COLS_WIP_COST', DV_COLS_WIP_COST);
 }
+
 
 
 
