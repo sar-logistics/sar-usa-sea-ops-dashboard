@@ -5503,12 +5503,20 @@ function renderDvBody() {
     tbody.innerHTML = `<tr><td colspan="${dvCols.length}" style="text-align:center;padding:56px 24px;color:#94a3b8;font-size:13px">No shipments match the current filters.</td></tr>`;
     return;
   }
-  tbody.innerHTML = dvFiltered.map(r =>
-    `<tr>${dvCols.map(c => {
+  // Dotted top border wherever the shipment changes from the row above, so
+  // consecutive charge lines belonging to the same shipment sit together
+  // with no line between them, and a dotted line marks where a new
+  // shipment's group starts
+  let prevShipmentId = null;
+  tbody.innerHTML = dvFiltered.map(r => {
+    const isNewShipment = r.shipmentId !== prevShipmentId;
+    prevShipmentId = r.shipmentId;
+    const rowStyle = isNewShipment ? ' style="border-top:1px dashed #cbd5e1"' : '';
+    return `<tr${rowStyle}>${dvCols.map(c => {
       const align = (c.num || c.pct) ? ' style="text-align:right"' : '';
       return `<td${align}>${formatDvCell(r, c)}</td>`;
-    }).join('')}</tr>`
-  ).join('');
+    }).join('')}</tr>`;
+  }).join('');
 }
 
 function updateDvFoot() {
@@ -5519,8 +5527,11 @@ function updateDvFoot() {
   tfoot.innerHTML = `<tr>${dvCols.map((c, i) => {
     const align = (c.num || c.pct) ? ' style="text-align:right"' : '';
     if (i === 0) {
-      // For WIP pages show unique shipment count
-      const isWip = rows.length > 0 && rows[0].chargeType !== undefined;
+      // For WIP pages show unique shipment count - chargeType for
+      // Indonesia/Thailand's WIP records, unbilledRevenue/unpostedCost for
+      // USA's ETD/ETA charge-line records (both are charge-line-level data
+      // with multiple rows per shipment, unlike one-row-per-shipment pages)
+      const isWip = rows.length > 0 && (rows[0].chargeType !== undefined || rows[0].unbilledRevenue !== undefined || rows[0].unpostedCost !== undefined);
       const count = isWip ? new Set(rows.map(r => r.shipmentId)).size : rows.length;
       const label = isWip ? count + ' unique shipment' + (count !== 1 ? 's' : '') : count.toLocaleString();
       return `<td>TOTAL (${label})</td>`;
