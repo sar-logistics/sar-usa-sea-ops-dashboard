@@ -4336,7 +4336,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
   const flaggedCount = flaggedShipments.length;
   const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
 
-  const flaggedLines = flaggedShipments.flatMap(sh => sh.lines);
+  const flaggedLines = flaggedShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0);
 
   const kTotal = document.getElementById('kv-' + s + '-total');
   if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,colSetArr); }
@@ -4373,12 +4373,12 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
     (isSingle ? '' : '<th class="col-grand">Grand Total</th>') +
     cols.map(c => `<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
 
-  const gtLines = flaggedShipments.flatMap(sh => sh.lines);
+  const gtLines = flaggedShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0);
   const gtId = dvReg(gtLines);
   let h = `<tr class="gt-block">
     <td style="padding-left:10px"><i class="rc open" id="rc-gt-${s}" onclick="toggleRows('gt-${s}',event)">▼</i> <strong>GRAND TOTAL</strong></td>
     ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtId}','Grand Total — ${flagLabel}','${label}','${colSetName}')">${gtFlGrand > 0 ? gtFlGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-    ${colCells(gtFl, flaggedShipments.flatMap(sh => sh.lines), cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSetName)}
+    ${colCells(gtFl, flaggedShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0), cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSetName)}
   </tr>
   <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
 
@@ -4386,7 +4386,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
     const bKey = s + bi;
     const owMap = flaggedMap[br] || {};
     const brShipments = flaggedShipments.filter(sh => sh.location === br);
-    const brLines = brShipments.flatMap(sh => sh.lines);
+    const brLines = brShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0);
     const brId = dvReg(brLines);
     const safeBr = br.replace(/'/g, "\\'");
 
@@ -4401,14 +4401,14 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
     h += `<tr class="br-row">
       <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
       ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — ${flagLabel}','${label}','${colSetName}')">${brGrand > 0 ? brGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-      ${colCells(brFl, brShipments.flatMap(sh => sh.lines), cols, colKeyFn, safeBr+' — '+flagLabel, label, colSetName)}
+      ${colCells(brFl, brShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0), cols, colKeyFn, safeBr+' — '+flagLabel, label, colSetName)}
     </tr>`;
 
     Object.keys(owMap).sort().forEach((ow, oi) => {
       const owKey = bKey + 'o' + oi;
       const owCols = owMap[ow] || {};
       const owShipments = brShipments.filter(sh => sh.salesPerson === ow);
-      const owLines = owShipments.flatMap(sh => sh.lines);
+      const owLines = owShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0);
       const owId = dvReg(owLines);
       const safeOw = ow.replace(/'/g, "\\'");
       let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
@@ -4416,7 +4416,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
       h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
         <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
         ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — ${flagLabel}','${label}','${colSetName}')">${owGrand > 0 ? owGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
-        ${colCells(owCols, owShipments.flatMap(sh => sh.lines), cols, colKeyFn, safeOw+' — '+flagLabel, label, colSetName)}
+        ${colCells(owCols, owShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0), cols, colKeyFn, safeOw+' — '+flagLabel, label, colSetName)}
       </tr>`;
     });
   });
