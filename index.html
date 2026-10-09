@@ -5503,15 +5503,18 @@ function renderDvBody() {
     tbody.innerHTML = `<tr><td colspan="${dvCols.length}" style="text-align:center;padding:56px 24px;color:#94a3b8;font-size:13px">No shipments match the current filters.</td></tr>`;
     return;
   }
-  // Dotted top border wherever the shipment changes from the row above, so
-  // consecutive charge lines belonging to the same shipment sit together
-  // with no line between them, and a dotted line marks where a new
-  // shipment's group starts
-  let prevShipmentId = null;
-  tbody.innerHTML = dvFiltered.map(r => {
-    const isNewShipment = r.shipmentId !== prevShipmentId;
-    prevShipmentId = r.shipmentId;
-    const rowStyle = isNewShipment ? ' style="border-top:1px dashed #cbd5e1"' : '';
+  // Dotted top border wherever a new shipment's group starts, PLUS a darker
+  // bottom border on that group's last row, so each shipment's set of
+  // charge lines reads as one visually bounded block
+  tbody.innerHTML = dvFiltered.map((r, i) => {
+    const prev = dvFiltered[i - 1];
+    const next = dvFiltered[i + 1];
+    const isNewShipment = !prev || r.shipmentId !== prev.shipmentId;
+    const isLastOfShipment = !next || r.shipmentId !== next.shipmentId;
+    let border = '';
+    if (isNewShipment) border += 'border-top:1px dashed #cbd5e1;';
+    if (isLastOfShipment) border += 'border-bottom:1.5px solid #94a3b8;';
+    const rowStyle = border ? ` style="${border}"` : '';
     return `<tr${rowStyle}>${dvCols.map(c => {
       const align = (c.num || c.pct) ? ' style="text-align:right"' : '';
       return `<td${align}>${formatDvCell(r, c)}</td>`;
