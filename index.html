@@ -3224,8 +3224,13 @@ function filterByDate(data, pageId) {
       const raw = r.etdEta || r.etd || r.eta;
       d = raw ? parseDdMmmYyyy(raw) : null;
     } else if (r.jobDate !== undefined) {
-      // USA record (LogiSys/JPA schema) — jobDate is the push-time ISO string
-      d = r.jobDate ? new Date(r.jobDate) : null;
+      // USA record (LogiSys/JPA schema) - detected via jobDate's presence,
+      // but the actual date used is etdEtaNew (the 3-step ETD/ETA fallback
+      // added to Export/Import), not jobDate itself, per explicit request.
+      // etdEtaNew's own 3rd fallback step already falls back to jobDate
+      // internally when ETD/ETA data is genuinely missing, so this isn't
+      // reading jobDate directly except as that built-in last resort.
+      d = r.etdEtaNew ? new Date(r.etdEtaNew) : (r.jobDate ? new Date(r.jobDate) : null);
     } else {
       const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
       d = raw ? new Date(raw) : null;
@@ -3300,8 +3305,13 @@ function getColKey(row, view) {
     raw = row.etdEta || row.etd || row.eta;
     d = raw ? parseDdMmmYyyy(raw) : null;
   } else if (row.jobDate !== undefined) {
-    // USA record (LogiSys/JPA schema) — jobDate is the push-time ISO string
-    d = row.jobDate ? new Date(row.jobDate) : null;
+    // USA record (LogiSys/JPA schema) - detected via jobDate's presence,
+    // but the actual date used is etdEtaNew (the 3-step ETD/ETA fallback),
+    // not jobDate itself, per explicit request. etdEtaNew's own 3rd
+    // fallback step already falls back to jobDate internally when ETD/ETA
+    // data is genuinely missing, so this isn't reading jobDate directly
+    // except as that built-in last resort.
+    d = row.etdEtaNew ? new Date(row.etdEtaNew) : (row.jobDate ? new Date(row.jobDate) : null);
   } else {
     raw = row.direction === 'Import' ? (row.destinationEta || row.originEtd) : (row.originEtd || row.etdDate);
     d = raw ? new Date(raw) : null;
