@@ -850,55 +850,57 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
 .dv-col-dd-apply{border:none;background:#1F3A6E;color:#fff;border-radius:6px;padding:5px 14px;font-size:11.5px;font-weight:600;cursor:pointer}
 .dv-col-dd-clear{border:1px solid #e2e8f0;background:#fff;color:#64748b;border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer}
 
-/* Frozen first SIX columns - widened from 3 to 6 so each page's full set of
-   requested frozen fields (e.g. Job No./LOB/ETD-ETA New/Charge/Unbilled
-   Revenue/Unposted Cost, or Shipment No/Direction/ETD-ETA New/Location/Job
-   Owner) stays visible while scrolling right. Fixed per-column widths with
-   cumulative left offsets: 140/100/110/160/140/130px -> left 0/140/240/350/510/650 */
-.dv-tbl thead th:nth-child(1),
-.dv-tbl thead th:nth-child(2),
-.dv-tbl thead th:nth-child(3),
-.dv-tbl thead th:nth-child(4),
-.dv-tbl thead th:nth-child(5),
-.dv-tbl thead th:nth-child(6),
-.dv-tbl tbody td:nth-child(1),
-.dv-tbl tbody td:nth-child(2),
-.dv-tbl tbody td:nth-child(3),
-.dv-tbl tbody td:nth-child(4),
-.dv-tbl tbody td:nth-child(5),
-.dv-tbl tbody td:nth-child(6),
-.dv-tbl tfoot td:nth-child(1),
-.dv-tbl tfoot td:nth-child(2),
-.dv-tbl tfoot td:nth-child(3),
-.dv-tbl tfoot td:nth-child(4),
-.dv-tbl tfoot td:nth-child(5),
-.dv-tbl tfoot td:nth-child(6){
+/* Frozen columns - 5 for Export/Import-based pages (.freeze-5: Shipment No/
+   Direction/ETD-ETA New/Location/Job Owner), 6 for ETD/ETA-tab-based pages
+   (.freeze-6: + Job No./LOB/ETD-ETA New/Charge/Unbilled Revenue/Unposted
+   Cost). Positions 1-5 apply to both; position 6 only to .freeze-6, so a
+   .freeze-5 table never accidentally freezes whatever lands in that slot
+   (e.g. Sales Person). Fixed per-column widths with cumulative left offsets:
+   140/100/110/160/140/130px -> left 0/140/240/350/510/650 */
+.dv-tbl.freeze-5 thead th:nth-child(1), .dv-tbl.freeze-6 thead th:nth-child(1),
+.dv-tbl.freeze-5 thead th:nth-child(2), .dv-tbl.freeze-6 thead th:nth-child(2),
+.dv-tbl.freeze-5 thead th:nth-child(3), .dv-tbl.freeze-6 thead th:nth-child(3),
+.dv-tbl.freeze-5 thead th:nth-child(4), .dv-tbl.freeze-6 thead th:nth-child(4),
+.dv-tbl.freeze-5 thead th:nth-child(5), .dv-tbl.freeze-6 thead th:nth-child(5),
+.dv-tbl.freeze-6 thead th:nth-child(6),
+.dv-tbl.freeze-5 tbody td:nth-child(1), .dv-tbl.freeze-6 tbody td:nth-child(1),
+.dv-tbl.freeze-5 tbody td:nth-child(2), .dv-tbl.freeze-6 tbody td:nth-child(2),
+.dv-tbl.freeze-5 tbody td:nth-child(3), .dv-tbl.freeze-6 tbody td:nth-child(3),
+.dv-tbl.freeze-5 tbody td:nth-child(4), .dv-tbl.freeze-6 tbody td:nth-child(4),
+.dv-tbl.freeze-5 tbody td:nth-child(5), .dv-tbl.freeze-6 tbody td:nth-child(5),
+.dv-tbl.freeze-6 tbody td:nth-child(6),
+.dv-tbl.freeze-5 tfoot td:nth-child(1), .dv-tbl.freeze-6 tfoot td:nth-child(1),
+.dv-tbl.freeze-5 tfoot td:nth-child(2), .dv-tbl.freeze-6 tfoot td:nth-child(2),
+.dv-tbl.freeze-5 tfoot td:nth-child(3), .dv-tbl.freeze-6 tfoot td:nth-child(3),
+.dv-tbl.freeze-5 tfoot td:nth-child(4), .dv-tbl.freeze-6 tfoot td:nth-child(4),
+.dv-tbl.freeze-5 tfoot td:nth-child(5), .dv-tbl.freeze-6 tfoot td:nth-child(5),
+.dv-tbl.freeze-6 tfoot td:nth-child(6){
   position:sticky;z-index:15;background:#f8fafc;border-right:1px solid #e2e8f0;
 }
-.dv-tbl thead th:nth-child(1){ left:0;    z-index:26;min-width:140px }
-.dv-tbl thead th:nth-child(2){ left:140px;z-index:25;min-width:100px }
-.dv-tbl thead th:nth-child(3){ left:240px;z-index:24;min-width:110px }
-.dv-tbl thead th:nth-child(4){ left:350px;z-index:23;min-width:160px }
-.dv-tbl thead th:nth-child(5){ left:510px;z-index:22;min-width:140px }
-.dv-tbl thead th:nth-child(6){ left:650px;z-index:21;min-width:130px }
-.dv-tbl tbody td:nth-child(1){ left:0;    background:#fff;font-weight:600;color:#0f172a;font-size:12px }
-.dv-tbl tbody td:nth-child(2){ left:140px;background:#fff }
-.dv-tbl tbody td:nth-child(3){ left:240px;background:#fff }
-.dv-tbl tbody td:nth-child(4){ left:350px;background:#fff }
-.dv-tbl tbody td:nth-child(5){ left:510px;background:#fff }
-.dv-tbl tbody td:nth-child(6){ left:650px;background:#fff }
-.dv-tbl tfoot td:nth-child(1){ left:0;    z-index:21;background:#f1f5f9 }
-.dv-tbl tfoot td:nth-child(2){ left:140px;z-index:20;background:#f1f5f9 }
-.dv-tbl tfoot td:nth-child(3){ left:240px;z-index:19;background:#f1f5f9 }
-.dv-tbl tfoot td:nth-child(4){ left:350px;z-index:18;background:#f1f5f9 }
-.dv-tbl tfoot td:nth-child(5){ left:510px;z-index:17;background:#f1f5f9 }
-.dv-tbl tfoot td:nth-child(6){ left:650px;z-index:16;background:#f1f5f9 }
-.dv-tbl tbody tr:hover td:nth-child(1),
-.dv-tbl tbody tr:hover td:nth-child(2),
-.dv-tbl tbody tr:hover td:nth-child(3),
-.dv-tbl tbody tr:hover td:nth-child(4),
-.dv-tbl tbody tr:hover td:nth-child(5),
-.dv-tbl tbody tr:hover td:nth-child(6){ background:#eff6ff }
+.dv-tbl.freeze-5 thead th:nth-child(1), .dv-tbl.freeze-6 thead th:nth-child(1){ left:0;    z-index:26;min-width:140px }
+.dv-tbl.freeze-5 thead th:nth-child(2), .dv-tbl.freeze-6 thead th:nth-child(2){ left:140px;z-index:25;min-width:100px }
+.dv-tbl.freeze-5 thead th:nth-child(3), .dv-tbl.freeze-6 thead th:nth-child(3){ left:240px;z-index:24;min-width:110px }
+.dv-tbl.freeze-5 thead th:nth-child(4), .dv-tbl.freeze-6 thead th:nth-child(4){ left:350px;z-index:23;min-width:160px }
+.dv-tbl.freeze-5 thead th:nth-child(5), .dv-tbl.freeze-6 thead th:nth-child(5){ left:510px;z-index:22;min-width:140px }
+.dv-tbl.freeze-6 thead th:nth-child(6){ left:650px;z-index:21;min-width:130px }
+.dv-tbl.freeze-5 tbody td:nth-child(1), .dv-tbl.freeze-6 tbody td:nth-child(1){ left:0;    background:#fff;font-weight:600;color:#0f172a;font-size:12px }
+.dv-tbl.freeze-5 tbody td:nth-child(2), .dv-tbl.freeze-6 tbody td:nth-child(2){ left:140px;background:#fff }
+.dv-tbl.freeze-5 tbody td:nth-child(3), .dv-tbl.freeze-6 tbody td:nth-child(3){ left:240px;background:#fff }
+.dv-tbl.freeze-5 tbody td:nth-child(4), .dv-tbl.freeze-6 tbody td:nth-child(4){ left:350px;background:#fff }
+.dv-tbl.freeze-5 tbody td:nth-child(5), .dv-tbl.freeze-6 tbody td:nth-child(5){ left:510px;background:#fff }
+.dv-tbl.freeze-6 tbody td:nth-child(6){ left:650px;background:#fff }
+.dv-tbl.freeze-5 tfoot td:nth-child(1), .dv-tbl.freeze-6 tfoot td:nth-child(1){ left:0;    z-index:21;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(2), .dv-tbl.freeze-6 tfoot td:nth-child(2){ left:140px;z-index:20;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(3), .dv-tbl.freeze-6 tfoot td:nth-child(3){ left:240px;z-index:19;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(4), .dv-tbl.freeze-6 tfoot td:nth-child(4){ left:350px;z-index:18;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(5), .dv-tbl.freeze-6 tfoot td:nth-child(5){ left:510px;z-index:17;background:#f1f5f9 }
+.dv-tbl.freeze-6 tfoot td:nth-child(6){ left:650px;z-index:16;background:#f1f5f9 }
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(1), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(1),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(2), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(2),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(3), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(3),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(4), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(4),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(5), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(5),
+.dv-tbl.freeze-6 tbody tr:hover td:nth-child(6){ background:#eff6ff }
 
 /* Centre-align all detail view cells and headers */
 .dv-tbl thead th{ text-align:center !important }
@@ -5233,6 +5235,18 @@ function openDrill(records, title, sub, colSet) {
   // Reset column filters
   dvCols.forEach(c => { dvColFilters[c.key] = new Set(); });
   dvOpenFilterKey = null;
+
+  // ETD/ETA-tab-based pages (Unbilled Revenue/Unposted Cost) freeze 6
+  // columns, Export/Import-based pages freeze 5 - toggle a class so the
+  // sticky CSS can be scoped per table type, rather than one blanket
+  // 6-column rule that would freeze a 6th, unwanted column on the 5-freeze
+  // tables (whatever happened to land in that position)
+  const dvTableEl = document.getElementById('dvTable');
+  if (dvTableEl) {
+    const isSixFreeze = dvCols === DV_COLS_WIP_REVENUE || dvCols === DV_COLS_WIP_COST;
+    dvTableEl.classList.toggle('freeze-6', isSixFreeze);
+    dvTableEl.classList.toggle('freeze-5', !isSixFreeze);
+  }
 
   document.getElementById('dvTitle').textContent = title || 'Shipment Details';
   document.getElementById('dvSub').textContent   = sub   || '';
