@@ -4230,7 +4230,6 @@ const DV_COLS_WIP_REVENUE = [
   { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'charge',            label:'Charge'                              },
   { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
-  { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'salesPerson',       label:'Sales Person'                        },
@@ -4250,7 +4249,6 @@ const DV_COLS_WIP_COST = [
   { key:'lob',                label:'LOB'                                 },
   { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'charge',            label:'Charge'                              },
-  { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
   { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
@@ -5246,9 +5244,12 @@ function openDrill(records, title, sub, colSet) {
   // tables (whatever happened to land in that position)
   const dvTableEl = document.getElementById('dvTable');
   if (dvTableEl) {
-    const isSixFreeze = dvCols === DV_COLS_WIP_REVENUE || dvCols === DV_COLS_WIP_COST;
-    dvTableEl.classList.toggle('freeze-6', isSixFreeze);
-    dvTableEl.classList.toggle('freeze-5', !isSixFreeze);
+    // DV_COLS_WIP_REVENUE/COST now have 5 frozen fields each (Job No., LOB,
+    // ETD/ETA New, Charge, Unbilled Revenue or Unposted Cost), same as every
+    // other page, since the cross-column (Unposted Cost on the Revenue page,
+    // Unbilled Revenue on the Cost page) was removed - freeze-6 is unused now
+    dvTableEl.classList.add('freeze-5');
+    dvTableEl.classList.remove('freeze-6');
   }
 
   document.getElementById('dvTitle').textContent = title || 'Shipment Details';
