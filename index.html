@@ -5122,36 +5122,34 @@ let dvActiveLob   = 'ALL';
 
 const DV_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-let currentCurrency = 'USD'; // IDR or USD
-let manualRate = 17500; // manual USD rate set by admin
+let currentCurrency = 'USD'; // USD (default, raw sheet value) or INR (converted)
+let manualRate = 83; // approximate INR per USD, admin-adjustable in Admin Panel
 
 function getExchangeRate() {
-  if (currentCurrency === 'USD') return manualRate || 17500;
-  return 1;
+  // USD per USD = 1 (raw sheet value, no conversion). INR per USD = manualRate
+  return currentCurrency === 'INR' ? (manualRate || 83) : 1;
 }
 
-function getCurrencySymbol() { return currentCurrency === 'USD' ? '$' : 'Rp'; }
+function getCurrencySymbol() { return currentCurrency === 'INR' ? '₹' : '$'; }
 
 function updateRateLabel() {
   const el = document.getElementById('cur-rate-label');
   if (!el) return;
-  const rates = (rawSRR || []).map(r => r.todayExchangeRate).filter(r => r && r > 0);
-  const avg = rates.length ? (rates.reduce((a,b) => a+b, 0) / rates.length).toFixed(2) : '—';
-  el.textContent = '1 USD = Rp' + avg;
+  el.textContent = '1 USD = ₹' + (manualRate || 83);
 }
 
 function fmtIndian(n) {
-  // USA's sheet data is already in USD - no exchange-rate conversion needed
-  // or wanted. This function (and the whole getExchangeRate()/manualRate/
-  // currentCurrency system) was carried over from Indonesia's codebase,
-  // where raw sheet values are in IDR and needed converting/displaying in
-  // USD via a manual rate. Applying that same division here was silently
-  // shrinking every real dollar value by a factor of ~17500 (e.g. a real
-  // $8,252 displayed as "$0.47") - fixed by never dividing at all,
-  // regardless of currentCurrency/manualRate's state.
+  // USA's sheet data is already in USD. USD mode shows it raw (rate 1, no
+  // conversion); INR mode multiplies by the admin-set rate to show the
+  // converted amount. This replaces the old Indonesia-specific logic that
+  // divided every value by a hardcoded IDR rate regardless of mode -
+  // silently shrinking every real dollar value by a factor of ~17500 (e.g.
+  // a real $8,252 displayed as "$0.47").
+  const rate = getExchangeRate();
+  n = n * rate;
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  return sign + '$' + abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  return sign + getCurrencySymbol() + abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
 function formatDvDate(v) {
@@ -6345,14 +6343,18 @@ async function loadAdminPanel() {
     </div>
 
     <div style="background:#fff;border:1px solid #e8ecf0;border-radius:12px;padding:14px 16px;margin-bottom:24px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase">Exchange Rate</div>
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase">Currency</div>
+      <div style="display:flex;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+        <button id="cur-usd" onclick="setCurrency('USD')" style="border:none;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;background:#1F3A6E;color:#fff">USD</button>
+        <button id="cur-inr" onclick="setCurrency('INR')" style="border:none;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#64748b">INR</button>
+      </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:12px;color:#64748b">1 USD = Rp</span>
+        <span style="font-size:12px;color:#64748b">1 USD = ₹</span>
         <input id="admin-usd-rate-input" type="number" value="${manualRate}" min="1" step="0.01"
           style="width:80px;font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;outline:none"
-          oninput="manualRate=parseFloat(this.value)||17500;const tbInput=document.getElementById('usd-rate-input');if(tbInput)tbInput.value=this.value;renderPage(document.querySelector('.page.active')?.id.replace('page-',''))" />
+          oninput="manualRate=parseFloat(this.value)||83;renderPage(document.querySelector('.page.active')?.id.replace('page-',''))" />
       </div>
-      <div style="font-size:11px;color:#94a3b8">Applies to all USD amounts across the dashboard</div>
+      <div style="font-size:11px;color:#94a3b8">Rate only applies when INR is selected</div>
     </div>`;
 
   // Render role groups
@@ -7443,10 +7445,10 @@ function renderSummary() {
   // ── EXPORT / IMPORT DIRECTION TOGGLE ─────────────────────
   window.setCurrency = function(cur) {
     currentCurrency = cur;
-    const thbBtn = document.getElementById('cur-idr');
+    const inrBtn = document.getElementById('cur-inr');
     const usdBtn = document.getElementById('cur-usd');
-    if (thbBtn) { thbBtn.style.background = cur === 'IDR' ? '#2a78d6' : 'transparent'; thbBtn.style.color = cur === 'IDR' ? '#fff' : 'rgba(255,255,255,.5)'; }
-    if (usdBtn) { usdBtn.style.background = cur === 'USD' ? '#2a78d6' : 'transparent'; usdBtn.style.color = cur === 'USD' ? '#fff' : 'rgba(255,255,255,.5)'; }
+    if (inrBtn) { inrBtn.style.background = cur === 'INR' ? '#1F3A6E' : 'transparent'; inrBtn.style.color = cur === 'INR' ? '#fff' : '#64748b'; }
+    if (usdBtn) { usdBtn.style.background = cur === 'USD' ? '#1F3A6E' : 'transparent'; usdBtn.style.color = cur === 'USD' ? '#fff' : '#64748b'; }
     // Save expanded rows before re-render
     const openKeys = new Set();
     document.querySelectorAll('.rc.open').forEach(rc => { if (rc.id) openKeys.add(rc.id); });
