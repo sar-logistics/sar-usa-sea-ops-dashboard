@@ -4174,6 +4174,7 @@ function getColumnsFromRecords(records, pageId, view) {
 // ── DV_COLS for Unbilled Revenue / Unposted Cost drill-downs ──────────────
 // USA (ETD/ETA tab, charge-line level) - real field names from the Apps
 // Script's camelCase conversion of the ETD/ETA tab's actual headers
+// ── DV_COLS for Unbilled Revenue / Unposted Cost drill-downs ──────────────
 const DV_COLS_WIP_REVENUE = [
   { key:'shipmentId',        label:'Job #'                               },
   { key:'charge',            label:'Charge'                              },
@@ -4203,9 +4204,7 @@ const DV_COLS_WIP_COST = [
 ];
 
 // Same bucketing logic as getColKey(), but using etdEtaNew (the properly
-// 3-step-derived date) instead of jobDate, since the ETD/ETA tab's charge
-// lines need to bucket by shipment timing, not by when the charge line
-// itself was recorded
+// 3-step-derived date) instead of jobDate
 function etdEtaColKey(row, view) {
   const d = row.etdEtaNew ? new Date(row.etdEtaNew) : null;
   if (!d || isNaN(d)) return null;
@@ -4240,230 +4239,144 @@ function filterEtdEtaByDate(records, pageId) {
   });
 }
 
-// ── RENDER: Unbilled Revenue ───────────────────────────────────────────────
+// Groups charge lines (filteredDD) by shipmentId, building one summary
+// record per shipment: { shipmentId, location, salesPerson, etdEtaNew,
+// sumField, lines: [...] }. sumField is either 'unbilledRevenue' or
+// 'unpostedCost', whichever this page cares about.
+function groupEtdEtaByShipment(filteredDD, sumField) {
+  const byShipment = {};
+  filteredDD.forEach(r => {
+    if (!byShipment[r.shipmentId]) {
+      byShipment[r.shipmentId] = {
+        shipmentId: r.shipmentId,
+        location: r.location || '(No Branch)',
+        salesPerson: r.salesPerson || '(Unknown)',
+        etdEtaNew: r.etdEtaNew,
+        sum: 0,
+        lines: [],
+      };
+    }
+    byShipment[r.shipmentId].sum += (Number(r[sumField]) || 0);
+    byShipment[r.shipmentId].lines.push(r);
+  });
+  return Object.values(byShipment);
+}
+
+// ── Shared renderer for both Unbilled Revenue and Unposted Cost - matches
+// Indonesia's shipment-COUNT model exactly (not dollar amounts), with
+// charge-line-level drill-through on click, per explicit confirmation ──────
+function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSet) {
+  const { cols, label, view } = getColumns(pageId);
+  const _kpiRow = document.querySelector('#page-' + pageId + ' .kpi-row');
+  if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
+
+  const filteredDD = filterEtdEtaByDate(rawWIP, pageId);
+  const shipments = groupEtdEtaByShipment(filteredDD, sumField);
+  const flaggedShipments = shipments.filter(sh => sh.sum > 0);
+
+  const totalJobs = shipments.length;
+  const flaggedCount = flaggedShipments.length;
+  const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
+
+  // Charge-line records belonging to flagged shipments, for drill-through
+  const flaggedLines = flaggedShipments.flatMap(sh => sh.lines);
+
+  const kTotal = document.getElementById('kv-' + s + '-total');
+  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,colSet); }
+  const kFlagged = document.getElementById('kv-' + s + '-flagged');
+  if (kFlagged) { kFlagged.textContent = flaggedCount.toLocaleString(); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(flaggedLines,flagLabel,label,colSet); }
+  const kPct = document.getElementById('kv-' + s + '-pct');
+  if (kPct) { kPct.textContent = pct+'%'; kPct.style.cursor='pointer'; kPct.onclick=()=>openDrill(flaggedLines,flagLabel,label,colSet); }
+  const kPeriod = document.getElementById('kv-' + s + '-period'); if (kPeriod) kPeriod.textContent = label;
+  const kSub = document.getElementById('kv-' + s + '-pct-sub'); if (kSub) kSub.textContent = flaggedCount + ' of ' + totalJobs + ' jobs';
+  const sc = document.getElementById('sc-' + pageId); if (sc) sc.textContent = totalJobs.toLocaleString() + ' total · ' + flaggedCount.toLocaleString() + ' flagged';
+
+  // Branch / Sales Person × Month grid - COUNT of flagged shipments per cell
+  const flaggedMap = {};
+  flaggedShipments.forEach(sh => {
+    const br = sh.location, ow = sh.salesPerson;
+    const ck = etdEtaColKey(sh, view) || 'other';
+    if (!flaggedMap[br]) flaggedMap[br] = {};
+    if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
+    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + 1;
+  });
+
+  const gtFl = {}; cols.forEach(c => { gtFl[c.key] = 0; }); let gtFlGrand = 0;
+  const colKeyFn = sh => etdEtaColKey(sh, view) || 'other';
+  flaggedShipments.forEach(sh => {
+    const ck = colKeyFn(sh);
+    if (gtFl[ck] !== undefined) gtFl[ck]++;
+    gtFlGrand++;
+  });
+
+  const isSingle = (cols.length === 1 && cols[0].single) || !showGrandTotal(view);
+  const tbl = document.getElementById('tbl-' + pageId);
+  if (tbl) tbl.classList.toggle('single-col', isSingle);
+  const thead = document.getElementById('thead-' + pageId);
+  if (thead) thead.innerHTML = '<th style="min-width:260px">Branch / Sales Person</th>' +
+    (isSingle ? '' : '<th class="col-grand">Grand Total</th>') +
+    cols.map(c => `<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
+
+  const gtLines = flaggedShipments.flatMap(sh => sh.lines);
+  const gtId = dvReg(gtLines);
+  let h = `<tr class="gt-block">
+    <td style="padding-left:10px"><i class="rc open" id="rc-gt-${s}" onclick="toggleRows('gt-${s}',event)">▼</i> <strong>GRAND TOTAL</strong></td>
+    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtId}','Grand Total — ${flagLabel}','${label}','${colSet}')">${gtFlGrand > 0 ? gtFlGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
+    ${colCells(gtFl, flaggedShipments, cols, colKeyFn, 'Grand Total — '+flagLabel, label, colSet)}
+  </tr>
+  <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
+
+  Object.keys(flaggedMap).sort().forEach((br, bi) => {
+    const bKey = s + bi;
+    const owMap = flaggedMap[br] || {};
+    const brShipments = flaggedShipments.filter(sh => sh.location === br);
+    const brLines = brShipments.flatMap(sh => sh.lines);
+    const brId = dvReg(brLines);
+    const safeBr = br.replace(/'/g, "\\'");
+
+    const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; });
+    let brGrand = 0;
+    Object.values(owMap).forEach(owCols => {
+      cols.forEach(c => { brFl[c.key] += (owCols[c.key] || 0); });
+      brGrand += Object.values(owCols).reduce((a,b) => a+b, 0);
+    });
+
+    const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
+    h += `<tr class="br-row">
+      <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
+      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — ${flagLabel}','${label}','${colSet}')">${brGrand > 0 ? brGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
+      ${colCells(brFl, brShipments, cols, colKeyFn, safeBr+' — '+flagLabel, label, colSet)}
+    </tr>`;
+
+    Object.keys(owMap).sort().forEach((ow, oi) => {
+      const owKey = bKey + 'o' + oi;
+      const owCols = owMap[ow] || {};
+      const owShipments = brShipments.filter(sh => sh.salesPerson === ow);
+      const owLines = owShipments.flatMap(sh => sh.lines);
+      const owId = dvReg(owLines);
+      const safeOw = ow.replace(/'/g, "\\'");
+      let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
+      const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
+      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
+        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
+        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — ${flagLabel}','${label}','${colSet}')">${owGrand > 0 ? owGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
+        ${colCells(owCols, owShipments, cols, colKeyFn, safeOw+' — '+flagLabel, label, colSet)}
+      </tr>`;
+    });
+  });
+
+  if (!Object.keys(flaggedMap).length) h = '<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No ' + flagLabel.toLowerCase() + ' for this period. ✅</td></tr>';
+  const tbody = document.getElementById('tbody-' + pageId); if (tbody) tbody.innerHTML = h;
+}
+
 function renderUnbilledRev() {
-  const pageId = 'unbilled-rev';
-  const { cols, label, view } = getColumns(pageId);
-  const _kpiRow = document.querySelector('#page-unbilled-rev .kpi-row');
-  if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-
-  const filteredDD = filterEtdEtaByDate(rawWIP, pageId);
-
-  // KPI 1 (blue): count of unique shipments with charge lines in this period
-  const uniqueShipments = new Set(filteredDD.map(r => r.shipmentId));
-  const totalJobs = uniqueShipments.size;
-
-  // KPI 2 (orange): total dollar sum of Unbilled Revenue across all charge lines
-  const totalUnbilled = filteredDD.reduce((sum, r) => sum + (Number(r.unbilledRevenue) || 0), 0);
-
-  // KPI 3 (red): unique shipments with a nonzero Unbilled Revenue on any
-  // charge line, as a % of total unique shipments
-  const unbilledByShipment = {};
-  filteredDD.forEach(r => {
-    unbilledByShipment[r.shipmentId] = (unbilledByShipment[r.shipmentId] || 0) + (Number(r.unbilledRevenue) || 0);
-  });
-  const uniqueUnbilledShipments = Object.keys(unbilledByShipment).filter(id => unbilledByShipment[id] > 0).length;
-  const pct = totalJobs > 0 ? ((uniqueUnbilledShipments / totalJobs) * 100).toFixed(1) : '0.0';
-
-  const kTotal = document.getElementById('kv-ur-total');
-  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,'DV_COLS_WIP_REVENUE'); }
-  const kFlagged = document.getElementById('kv-ur-flagged');
-  if (kFlagged) { kFlagged.textContent = '$' + totalUnbilled.toLocaleString(undefined,{maximumFractionDigits:0}); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(filteredDD.filter(r=>(Number(r.unbilledRevenue)||0)>0),'Unbilled Revenue',label,'DV_COLS_WIP_REVENUE'); }
-  const kPct = document.getElementById('kv-ur-pct');
-  if (kPct) kPct.textContent = pct + '%';
-  const kPeriod = document.getElementById('kv-ur-period'); if (kPeriod) kPeriod.textContent = label;
-  const kPctSub = document.getElementById('kv-ur-pct-sub'); if (kPctSub) kPctSub.textContent = uniqueUnbilledShipments + ' of ' + totalJobs + ' jobs';
-
-  // Branch / Sales Person × Month grid - cells show dollar sums
-  const flaggedMap = {};
-  function addAmt(br, ow, ck, amt) {
-    if (!flaggedMap[br]) flaggedMap[br] = {};
-    if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
-    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + amt;
-  }
-  filteredDD.forEach(r => {
-    addAmt(r.location || '(No Branch)', r.salesPerson || '(Unknown)', etdEtaColKey(r, view) || 'other', Number(r.unbilledRevenue) || 0);
-  });
-
-  const gtFlagged = {}; cols.forEach(c => { gtFlagged[c.key] = 0; });
-  let gtFlaggedGrand = 0;
-  const colKeyFn = r => etdEtaColKey(r, view) || 'other';
-  filteredDD.forEach(r => {
-    const ck = colKeyFn(r);
-    const amt = Number(r.unbilledRevenue) || 0;
-    if (gtFlagged[ck] !== undefined) gtFlagged[ck] += amt;
-    gtFlaggedGrand += amt;
-  });
-
-  const isSingle = (cols.length === 1 && cols[0].single) || !showGrandTotal(view);
-  const tbl = document.getElementById('tbl-unbilled-rev');
-  if (tbl) tbl.classList.toggle('single-col', isSingle);
-  const thead = document.getElementById('thead-unbilled-rev');
-  if (thead) thead.innerHTML = '<th style="min-width:260px">Branch / Sales Person</th>' +
-    (isSingle ? '' : '<th class="col-grand">Grand Total</th>') +
-    cols.map(c => `<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
-
-  let h = '';
-  const gtFlagId = dvReg(filteredDD);
-  h += `<tr class="gt-block">
-    <td style="padding-left:10px"><i class="rc open" id="rc-gt" onclick="toggleRows('gt',event)">▼</i> <strong>GRAND TOTAL</strong></td>
-    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtFlagId}','Grand Total — Unbilled Revenue','${label}','DV_COLS_WIP_REVENUE')">$${gtFlaggedGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
-    ${colCells(gtFlagged, filteredDD, cols, colKeyFn, 'Grand Total — Unbilled Revenue', label, 'DV_COLS_WIP_REVENUE')}
-  </tr>
-  <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
-
-  const sortedBranches = Object.keys(flaggedMap).sort();
-  sortedBranches.forEach((br, bi) => {
-    const bKey = 'b' + bi;
-    const owMap = flaggedMap[br] || {};
-    const brRecs = filteredDD.filter(r => (r.location || '(No Branch)') === br);
-    const brId = dvReg(brRecs);
-    const safeBr = br.replace(/'/g, "\\'");
-
-    const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; });
-    let brGrand = 0;
-    Object.values(owMap).forEach(owCols => {
-      cols.forEach(c => { brFl[c.key] += (owCols[c.key] || 0); });
-      brGrand += Object.values(owCols).reduce((a,b) => a+b, 0);
-    });
-
-    const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
-    h += `<tr class="br-row">
-      <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
-      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — Unbilled Revenue','${label}','DV_COLS_WIP_REVENUE')">$${brGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
-      ${colCells(brFl, brRecs, cols, colKeyFn, safeBr+' — Unbilled Revenue', label, 'DV_COLS_WIP_REVENUE')}
-    </tr>`;
-
-    Object.keys(owMap).sort().forEach((ow, oi) => {
-      const owKey = bKey + 'o' + oi;
-      const owCols = owMap[ow] || {};
-      const owRecs = brRecs.filter(r => (r.salesPerson || '(Unknown)') === ow);
-      const owId = dvReg(owRecs);
-      const safeOw = ow.replace(/'/g, "\\'");
-      let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
-      const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
-      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
-        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
-        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — Unbilled Revenue','${label}','DV_COLS_WIP_REVENUE')">$${owGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
-        ${colCells(owCols, owRecs, cols, colKeyFn, safeOw+' — Unbilled Revenue', label, 'DV_COLS_WIP_REVENUE')}
-      </tr>`;
-    });
-  });
-
-  if (!sortedBranches.length) h = '<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No data for this period.</td></tr>';
-  const tbody = document.getElementById('tbody-unbilled-rev'); if (tbody) tbody.innerHTML = h;
-  const sc = document.getElementById('sc-unbilled-rev'); if (sc) sc.textContent = totalJobs.toLocaleString()+' jobs · $'+totalUnbilled.toLocaleString(undefined,{maximumFractionDigits:0})+' unbilled';
+  _renderEtdEtaFlagged('unbilled-rev', 'ur', 'Unbilled Revenue', 'unbilledRevenue', 'DV_COLS_WIP_REVENUE');
 }
 
-// ── RENDER: Unposted Cost ──────────────────────────────────────────────────
 function renderUnpostedCost() {
-  const pageId = 'unposted-cost';
-  const { cols, label, view } = getColumns(pageId);
-  const _kpiRow = document.querySelector('#page-unposted-cost .kpi-row');
-  if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-
-  const filteredDD = filterEtdEtaByDate(rawWIP, pageId);
-
-  const uniqueShipments = new Set(filteredDD.map(r => r.shipmentId));
-  const totalJobs = uniqueShipments.size;
-
-  const totalUnposted = filteredDD.reduce((sum, r) => sum + (Number(r.unpostedCost) || 0), 0);
-
-  const unpostedByShipment = {};
-  filteredDD.forEach(r => {
-    unpostedByShipment[r.shipmentId] = (unpostedByShipment[r.shipmentId] || 0) + (Number(r.unpostedCost) || 0);
-  });
-  const uniqueUnpostedShipments = Object.keys(unpostedByShipment).filter(id => unpostedByShipment[id] > 0).length;
-  const pct = totalJobs > 0 ? ((uniqueUnpostedShipments / totalJobs) * 100).toFixed(1) : '0.0';
-
-  const kTotal = document.getElementById('kv-uc-total');
-  if (kTotal) { kTotal.textContent = totalJobs.toLocaleString(); kTotal.style.cursor='pointer'; kTotal.onclick=()=>openDrill(filteredDD,'Total Jobs',label,'DV_COLS_WIP_COST'); }
-  const kFlagged = document.getElementById('kv-uc-flagged');
-  if (kFlagged) { kFlagged.textContent = '$' + totalUnposted.toLocaleString(undefined,{maximumFractionDigits:0}); kFlagged.style.cursor='pointer'; kFlagged.onclick=()=>openDrill(filteredDD.filter(r=>(Number(r.unpostedCost)||0)>0),'Unposted Cost',label,'DV_COLS_WIP_COST'); }
-  const kPct = document.getElementById('kv-uc-pct');
-  if (kPct) kPct.textContent = pct + '%';
-  const kPeriod = document.getElementById('kv-uc-period'); if (kPeriod) kPeriod.textContent = label;
-  const kPctSub = document.getElementById('kv-uc-pct-sub'); if (kPctSub) kPctSub.textContent = uniqueUnpostedShipments + ' of ' + totalJobs + ' jobs';
-
-  const flaggedMap = {};
-  function addAmt(br, ow, ck, amt) {
-    if (!flaggedMap[br]) flaggedMap[br] = {};
-    if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
-    flaggedMap[br][ow][ck] = (flaggedMap[br][ow][ck] || 0) + amt;
-  }
-  filteredDD.forEach(r => {
-    addAmt(r.location || '(No Branch)', r.salesPerson || '(Unknown)', etdEtaColKey(r, view) || 'other', Number(r.unpostedCost) || 0);
-  });
-
-  const gtFlagged = {}; cols.forEach(c => { gtFlagged[c.key] = 0; });
-  let gtFlaggedGrand = 0;
-  const colKeyFn = r => etdEtaColKey(r, view) || 'other';
-  filteredDD.forEach(r => {
-    const ck = colKeyFn(r);
-    const amt = Number(r.unpostedCost) || 0;
-    if (gtFlagged[ck] !== undefined) gtFlagged[ck] += amt;
-    gtFlaggedGrand += amt;
-  });
-
-  const isSingle = (cols.length === 1 && cols[0].single) || !showGrandTotal(view);
-  const tbl = document.getElementById('tbl-unposted-cost');
-  if (tbl) tbl.classList.toggle('single-col', isSingle);
-  const thead = document.getElementById('thead-unposted-cost');
-  if (thead) thead.innerHTML = '<th style="min-width:260px">Branch / Sales Person</th>' +
-    (isSingle ? '' : '<th class="col-grand">Grand Total</th>') +
-    cols.map(c => `<th style="min-width:${isSingle?'300':'100'}px;text-align:right">${c.label}</th>`).join('');
-
-  let h = '';
-  const gtFlagId = dvReg(filteredDD);
-  h += `<tr class="gt-block">
-    <td style="padding-left:10px"><i class="rc open" id="rc-gt" onclick="toggleRows('gt',event)">▼</i> <strong>GRAND TOTAL</strong></td>
-    ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${gtFlagId}','Grand Total — Unposted Cost','${label}','DV_COLS_WIP_COST')">$${gtFlaggedGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
-    ${colCells(gtFlagged, filteredDD, cols, colKeyFn, 'Grand Total — Unposted Cost', label, 'DV_COLS_WIP_COST')}
-  </tr>
-  <tr class="gt-sep"><td colspan="${cols.length + (isSingle?1:2)}"></td></tr>`;
-
-  const sortedBranches = Object.keys(flaggedMap).sort();
-  sortedBranches.forEach((br, bi) => {
-    const bKey = 'b' + bi;
-    const owMap = flaggedMap[br] || {};
-    const brRecs = filteredDD.filter(r => (r.location || '(No Branch)') === br);
-    const brId = dvReg(brRecs);
-    const safeBr = br.replace(/'/g, "\\'");
-
-    const brFl = {}; cols.forEach(c => { brFl[c.key] = 0; });
-    let brGrand = 0;
-    Object.values(owMap).forEach(owCols => {
-      cols.forEach(c => { brFl[c.key] += (owCols[c.key] || 0); });
-      brGrand += Object.values(owCols).reduce((a,b) => a+b, 0);
-    });
-
-    const av = `<span class="av" style="background:${avColor(br)}">${avInitials(br)}</span>`;
-    h += `<tr class="br-row">
-      <td>${av}<i class="rc" id="rc-${bKey}" onclick="toggleRows('${bKey}',event)">▶</i> ${br}</td>
-      ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${brId}','${safeBr} — Unposted Cost','${label}','DV_COLS_WIP_COST')">$${brGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
-      ${colCells(brFl, brRecs, cols, colKeyFn, safeBr+' — Unposted Cost', label, 'DV_COLS_WIP_COST')}
-    </tr>`;
-
-    Object.keys(owMap).sort().forEach((ow, oi) => {
-      const owKey = bKey + 'o' + oi;
-      const owCols = owMap[ow] || {};
-      const owRecs = brRecs.filter(r => (r.salesPerson || '(Unknown)') === ow);
-      const owId = dvReg(owRecs);
-      const safeOw = ow.replace(/'/g, "\\'");
-      let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
-      const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
-      h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
-        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
-        ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — Unposted Cost','${label}','DV_COLS_WIP_COST')">$${owGrand.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`}
-        ${colCells(owCols, owRecs, cols, colKeyFn, safeOw+' — Unposted Cost', label, 'DV_COLS_WIP_COST')}
-      </tr>`;
-    });
-  });
-
-  if (!sortedBranches.length) h = '<tr><td colspan="99" style="text-align:center;padding:32px;color:var(--text3)">No data for this period.</td></tr>';
-  const tbody = document.getElementById('tbody-unposted-cost'); if (tbody) tbody.innerHTML = h;
-  const sc = document.getElementById('sc-unposted-cost'); if (sc) sc.textContent = totalJobs.toLocaleString()+' jobs · $'+totalUnposted.toLocaleString(undefined,{maximumFractionDigits:0})+' unposted';
+  _renderEtdEtaFlagged('unposted-cost', 'uc', 'Unposted Cost', 'unpostedCost', 'DV_COLS_WIP_COST');
 }
+
 
 
 // ── Shared JPA flagged report renderer ───────────────────────
