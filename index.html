@@ -4183,7 +4183,7 @@ function getColumnsFromRecords(records, pageId, view) {
 // the SAME key in the push script and silently collide - flagged
 // separately, not fixed here since it doesn't affect Unbilled/Unposted.
 const DV_COLS_WIP_REVENUE = [
-  { key:'shipmentId',        label:'Job No.'                             },
+  { key:'shipmentId',        label:'Shipment No.'                        },
   { key:'lob',                label:'LOB'                                 },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
@@ -4199,13 +4199,13 @@ const DV_COLS_WIP_REVENUE = [
   { key:'actualProfit',      label:'Actual Profit',     num:true         },
   { key:'ataAtd',             label:'ATA/ATD',           date:true        },
   { key:'financialLock',     label:'Financial Lock',    date:true        },
-  { key:'etdEtaNew',         label:'ETD/ETA',           date:true        },
+  { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
   { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
 ];
 
 const DV_COLS_WIP_COST = [
-  { key:'shipmentId',        label:'Job No.'                             },
+  { key:'shipmentId',        label:'Shipment No.'                        },
   { key:'lob',                label:'LOB'                                 },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
@@ -4221,7 +4221,7 @@ const DV_COLS_WIP_COST = [
   { key:'actualProfit',      label:'Actual Profit',     num:true         },
   { key:'ataAtd',             label:'ATA/ATD',           date:true        },
   { key:'financialLock',     label:'Financial Lock',    date:true        },
-  { key:'etdEtaNew',         label:'ETD/ETA',           date:true        },
+  { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
   { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
 ];
