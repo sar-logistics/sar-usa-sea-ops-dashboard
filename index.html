@@ -5584,29 +5584,14 @@ function renderDvBody() {
 function updateDvFoot() {
   const tfoot = document.getElementById('dvTfoot');
   const rows = dvFiltered;
-  const sums = {};
-  dvCols.forEach(c => { if (c.num && !c.pct) sums[c.key] = rows.reduce((a, r) => a + (c.calc ? c.calc(r) : (Number(r[c.key]) || 0)), 0); });
+  // No summed totals in the footer, per request - only the unique-shipment-
+  // count label in the first cell, every other cell stays blank
   tfoot.innerHTML = `<tr>${dvCols.map((c, i) => {
-    const align = (c.num || c.pct) ? ' style="text-align:right"' : '';
     if (i === 0) {
-      // For WIP pages show unique shipment count - chargeType for
-      // Indonesia/Thailand's WIP records, unbilledRevenue/unpostedCost for
-      // USA's ETD/ETA charge-line records (both are charge-line-level data
-      // with multiple rows per shipment, unlike one-row-per-shipment pages)
       const isWip = rows.length > 0 && (rows[0].chargeType !== undefined || rows[0].unbilledRevenue !== undefined || rows[0].unpostedCost !== undefined);
       const count = isWip ? new Set(rows.map(r => r.shipmentId)).size : rows.length;
       const label = isWip ? count + ' unique shipment' + (count !== 1 ? 's' : '') : count.toLocaleString();
       return `<td>TOTAL (${label})</td>`;
-    }
-    if (c.num && sums[c.key] !== undefined) {
-      const n = sums[c.key];
-      const isProfit = c.key === 'estimatedProfit' || c.key === 'actualProfit' ||
-                       c.key === 'provisionalProfit' || c.key === 'unbilledRevenue' ||
-                       c.key === 'unpostedCost';
-      const color = isProfit ? (n >= 0 ? '#16a34a' : '#dc2626') : '#1d4ed8';
-      const val = c.plain ? n.toLocaleString('en-US', { maximumFractionDigits: 2 }) : c.full ? n.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : fmtIndian(n);
-      const plainColor = c.plain ? '#1F3A6E' : color;
-      return `<td${align} style="color:${plainColor}">${val}</td>`;
     }
     return `<td></td>`;
   }).join('')}</tr>`;
