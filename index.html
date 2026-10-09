@@ -5503,22 +5503,18 @@ function renderDvBody() {
     tbody.innerHTML = `<tr><td colspan="${dvCols.length}" style="text-align:center;padding:56px 24px;color:#94a3b8;font-size:13px">No shipments match the current filters.</td></tr>`;
     return;
   }
-  // Dotted top border wherever a new shipment's group starts, PLUS a darker
-  // bottom border on that group's last row, so each shipment's set of
-  // charge lines reads as one visually bounded block. Applied to each <td>,
-  // not the <tr> - <tr>-level borders don't reliably render in most
-  // browsers, and even if they did, the first 3 sticky columns have their
-  // own explicit background:#fff that would visually cover a <tr> border
-  // anyway. Per-<td> inline styles also correctly override the existing
-  // class-level "border-bottom:1px solid #f1f5f9" via specificity.
+  // Dotted top border wherever a new shipment's group starts, so each
+  // shipment's set of charge lines reads as one visually grouped block.
+  // Applied to each <td>, not the <tr> - <tr>-level borders don't reliably
+  // render in most browsers, and even if they did, the first 3 sticky
+  // columns have their own explicit background:#fff that would visually
+  // cover a <tr> border anyway. Per-<td> inline styles also correctly
+  // override the existing class-level "border-bottom:1px solid #f1f5f9"
+  // via specificity.
   tbody.innerHTML = dvFiltered.map((r, i) => {
     const prev = dvFiltered[i - 1];
-    const next = dvFiltered[i + 1];
     const isNewShipment = !prev || r.shipmentId !== prev.shipmentId;
-    const isLastOfShipment = !next || r.shipmentId !== next.shipmentId;
-    let extraBorder = '';
-    if (isNewShipment) extraBorder += 'border-top:1px dashed #cbd5e1;';
-    if (isLastOfShipment) extraBorder += 'border-bottom:1.5px solid #94a3b8;';
+    const extraBorder = isNewShipment ? 'border-top:1px dashed #cbd5e1;' : '';
     return `<tr>${dvCols.map(c => {
       const align = (c.num || c.pct) ? 'text-align:right;' : '';
       const styleAttr = (align || extraBorder) ? ` style="${align}${extraBorder}"` : '';
