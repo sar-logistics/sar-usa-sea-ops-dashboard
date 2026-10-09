@@ -4230,10 +4230,10 @@ const DV_COLS_WIP_REVENUE = [
   { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'charge',            label:'Charge'                              },
   { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
-  { key:'operationLockDate', label:'Operation Lock Date', date:true      },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'jobOwner',          label:'Job Owner'                           },
+  { key:'operationLockDate', label:'Operation Lock Date', date:true      },
   { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
   { key:'bookedRevenue',     label:'Booked Revenue',    num:true         },
   { key:'actualRevenue',     label:'Actual Revenue',    num:true         },
@@ -4251,10 +4251,10 @@ const DV_COLS_WIP_COST = [
   { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'charge',            label:'Charge'                              },
   { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
-  { key:'operationLockDate', label:'Operation Lock Date', date:true      },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'jobOwner',          label:'Job Owner'                           },
+  { key:'operationLockDate', label:'Operation Lock Date', date:true      },
   { key:'estimatedCost',     label:'Estimated Cost',    num:true         },
   { key:'bookedCost',        label:'Booked Cost',       num:true         },
   { key:'actualCost',        label:'Actual Cost',       num:true         },
@@ -5247,13 +5247,12 @@ function openDrill(records, title, sub, colSet) {
   // tables (whatever happened to land in that position)
   const dvTableEl = document.getElementById('dvTable');
   if (dvTableEl) {
-    // DV_COLS_WIP_REVENUE/COST are back to 6 frozen fields each (Job No.,
-    // LOB, ETD/ETA New, Charge, Unbilled Revenue/Unposted Cost, and now
-    // Operation Lock Date) - freeze-6 back in use for these two pages,
-    // freeze-5 for everything else
-    const isSixFreeze = dvCols === DV_COLS_WIP_REVENUE || dvCols === DV_COLS_WIP_COST;
-    dvTableEl.classList.toggle('freeze-6', isSixFreeze);
-    dvTableEl.classList.toggle('freeze-5', !isSixFreeze);
+    // Operation Lock Date removed from the frozen set per request - it's
+    // still a visible column, just no longer pinned. Back to 5 frozen
+    // fields (Job No., LOB, ETD/ETA New, Charge, Unbilled Revenue/Unposted
+    // Cost) for every page, freeze-6 unused again
+    dvTableEl.classList.add('freeze-5');
+    dvTableEl.classList.remove('freeze-6');
   }
 
   document.getElementById('dvTitle').textContent = title || 'Shipment Details';
