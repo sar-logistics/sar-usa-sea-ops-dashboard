@@ -4307,7 +4307,7 @@ function groupEtdEtaByShipment(filteredDD, sumField) {
       byShipment[r.shipmentId] = {
         shipmentId: r.shipmentId,
         location: r.location || '(No Branch)',
-        salesPerson: r.salesPerson || '(Unknown)',
+        jobOwner: r.jobOwner || '(Unknown)',
         etdEtaNew: r.etdEtaNew,
         sum: 0,
         lines: [],
@@ -4352,7 +4352,7 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
 
   const flaggedMap = {};
   flaggedShipments.forEach(sh => {
-    const br = sh.location, ow = sh.salesPerson;
+    const br = sh.location, ow = sh.jobOwner;
     const ck = etdEtaColKey(sh, view) || 'other';
     if (!flaggedMap[br]) flaggedMap[br] = {};
     if (!flaggedMap[br][ow]) flaggedMap[br][ow] = {};
@@ -4409,14 +4409,14 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
     Object.keys(owMap).sort().forEach((ow, oi) => {
       const owKey = bKey + 'o' + oi;
       const owCols = owMap[ow] || {};
-      const owShipments = brShipments.filter(sh => sh.salesPerson === ow);
+      const owShipments = brShipments.filter(sh => sh.jobOwner === ow);
       const owLines = owShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0);
       const owId = dvReg(owLines);
       const safeOw = ow.replace(/'/g, "\\'");
       let owGrand = 0; cols.forEach(c => { owGrand += (owCols[c.key] || 0); });
       const oav = `<span class="av" style="background:${avColor(ow)}">${avInitials(ow)}</span>`;
       h += `<tr class="jo-row r-br-${bKey} r-hidden" data-grp="${bKey}">
-        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Sales Person)</span></td>
+        <td>${oav}${ow} <span style="font-size:10px;color:var(--text3);margin-left:4px">(Job Owner)</span></td>
         ${isSingle ? '' : `<td class="col-grand" style="cursor:pointer" onclick="dvOpen('${owId}','${safeOw} — ${flagLabel}','${label}','${colSetName}')">${owGrand > 0 ? owGrand.toLocaleString() : '<span class="dash">—</span>'}</td>`}
         ${colCells(owCols, owShipments.flatMap(sh => sh.lines).filter(r => (Number(r[sumField]) || 0) > 0), cols, colKeyFn, safeOw+' — '+flagLabel, label, colSetName)}
       </tr>`;
