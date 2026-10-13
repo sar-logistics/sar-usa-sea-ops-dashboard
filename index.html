@@ -4977,7 +4977,11 @@ function updateDvFoot() {
 function updateDvCounts() {
   const total    = dvTabRecords.length;
   const filtered = dvFiltered.length;
-  document.getElementById('dvCount').textContent = filtered.toLocaleString() + ' shipments';
+  const isWip = dvFiltered.length > 0 && (dvFiltered[0].chargeType !== undefined || dvFiltered[0].unbilledRevenue !== undefined || dvFiltered[0].unpostedCost !== undefined);
+  const countLabel = isWip
+    ? filtered.toLocaleString() + ' item' + (filtered !== 1 ? 's' : '')
+    : filtered.toLocaleString() + ' shipments';
+  document.getElementById('dvCount').textContent = countLabel;
   const hasFilter = dvCols.some(c => {
     const v = dvColFilters[c.key];
     return v === null || (v instanceof Set && v.size > 0);
