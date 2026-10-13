@@ -4961,14 +4961,18 @@ function renderDvBody() {
 function updateDvFoot() {
   const tfoot = document.getElementById('dvTfoot');
   const rows = dvFiltered;
-  // No summed totals in the footer, per request - only the unique-shipment-
-  // count label in the first cell, every other cell stays blank
+  // First cell: unique-shipment-count label. Numeric (amount) columns get
+  // a summed total below their column; non-numeric columns stay blank.
   tfoot.innerHTML = `<tr>${dvCols.map((c, i) => {
     if (i === 0) {
       const isWip = rows.length > 0 && (rows[0].chargeType !== undefined || rows[0].unbilledRevenue !== undefined || rows[0].unpostedCost !== undefined);
       const count = isWip ? new Set(rows.map(r => r.shipmentId)).size : rows.length;
       const label = isWip ? count + ' unique shipment' + (count !== 1 ? 's' : '') : count.toLocaleString();
       return `<td>TOTAL (${label})</td>`;
+    }
+    if (c.num) {
+      const sum = rows.reduce((a, r) => a + (Number(r[c.key]) || 0), 0);
+      return `<td style="text-align:right;font-weight:700">${fmtIndian(sum)}</td>`;
     }
     return `<td></td>`;
   }).join('')}</tr>`;
