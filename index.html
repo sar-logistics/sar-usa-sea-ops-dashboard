@@ -617,10 +617,10 @@ body.dashboard-blurred .content::after{background:rgba(15,23,42,0)}
 
 /* CUSTOM DATE RANGE PICKER */
 .dp-wrap{position:relative;display:inline-block}
-.dp-trigger{display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:5px 10px;background:#22374E;font-size:12px;color:#F0F6FC;cursor:pointer;transition:border-color .12s;white-space:nowrap;user-select:none;min-width:110px}
+.dp-trigger{display:flex;align-items:center;gap:6px;border:1px solid #B9C9DC;border-radius:20px;padding:7px 14px;background:#F1F5F9;font-size:12px;color:var(--navy-900);cursor:pointer;transition:background .15s;white-space:nowrap;user-select:none;min-width:110px;box-shadow:0 2px 6px rgba(15,31,46,.14), 0 1px 2px rgba(15,31,46,.08)}
 .dp-trigger:hover{border-color:#3B82F6}
 .dp-trigger i{font-size:14px;color:#e0796e;flex-shrink:0}
-.dp-placeholder{color:#8FA3B8}
+.dp-placeholder{color:#64748b}
 .dp-dropdown{position:absolute;top:100%;left:0;background:#FFFFFF;border:1px solid var(--border);border-radius:0 0 12px 12px;padding:0 16px;width:260px;z-index:200;box-shadow:var(--shadow-lg);max-height:0;overflow:hidden;opacity:0;transform:scaleX(.92);transform-origin:top left;transition:max-height .28s cubic-bezier(.34,1.56,.64,1),opacity .18s ease,padding .28s cubic-bezier(.34,1.56,.64,1),transform .28s cubic-bezier(.34,1.56,.64,1)}
 .dp-dropdown.hidden{max-height:0!important;opacity:0!important;padding:0 16px!important}
 .dp-dropdown:not(.hidden){max-height:360px;opacity:1;padding:16px;transform:scaleX(1)}
@@ -1195,7 +1195,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           </div>
           <div id="fc-yearly-summary" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">Financial Year</span>
-            <span id="fy-label-summary" style="font-size:12px;color:var(--text2);font-weight:500">Auto-detected</span>
+            <span id="fy-label-summary" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap">Auto-detected</span>
           </div>
           <div id="fc-custom-summary" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">From</span>
@@ -1265,7 +1265,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           </div>
           <div id="fc-yearly-open-jobs" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">Financial Year</span>
-            <span id="fy-label-open-jobs" style="font-size:12px;color:var(--text2);font-weight:500">Auto-detected</span>
+            <span id="fy-label-open-jobs" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap">Auto-detected</span>
           </div>
           <div id="fc-custom-open-jobs" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">From</span>
@@ -1368,7 +1368,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           </div>
           <div id="fc-yearly-total-jobs" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">Financial Year</span>
-            <span id="fy-label-total-jobs" style="font-size:12px;color:var(--text2);font-weight:500">Auto-detected</span>
+            <span id="fy-label-total-jobs" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap">Auto-detected</span>
           </div>
           <div id="fc-custom-total-jobs" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">From</span>
@@ -1453,7 +1453,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           </div>
           <div id="fc-yearly-unbilled-rev" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">Financial Year</span>
-            <span id="fy-label-unbilled-rev" style="font-size:12px;color:var(--text2);font-weight:500">Auto-detected</span>
+            <span id="fy-label-unbilled-rev" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap">Auto-detected</span>
           </div>
           <div id="fc-custom-unbilled-rev" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">From</span>
@@ -1553,7 +1553,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           </div>
           <div id="fc-yearly-unposted-cost" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">Financial Year</span>
-            <span id="fy-label-unposted-cost" style="font-size:12px;color:var(--text2);font-weight:500">Auto-detected</span>
+            <span id="fy-label-unposted-cost" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap">Auto-detected</span>
           </div>
           <div id="fc-custom-unposted-cost" style="display:none;align-items:center;gap:8px">
             <span class="filter-label">From</span>
