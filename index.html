@@ -994,6 +994,9 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <!-- Icon rail — visible once a direction is selected -->
       <div class="lob-icon-rail" id="lob-icon-rail">
         <div class="rail-btn active" id="rail-sea" onclick="railExpand()" title="Sea"><i class="ti ti-anchor"></i></div>
+        <div class="rail-btn" id="rail-air" onclick="railExpand()" title="Air"><i class="ti ti-plane"></i></div>
+        <div class="rail-btn" id="rail-road" onclick="railExpand()" title="Roadways"><i class="ti ti-truck"></i></div>
+        <div class="rail-btn" id="rail-gen" onclick="railExpand()" title="General"><i class="ti ti-package"></i></div>
       </div>
       <div class="sidebar-main-col">
       <!-- LOB Navigation — Accordion List -->
@@ -1017,6 +1020,53 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                 <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
               </div>
             </div></div>
+          </div>
+
+          <div class="lob-row" id="lob-row-air" data-lob="air">
+            <div class="lob-row-head" onclick="toggleLobRow('air')">
+              <div class="lob-row-illus"></div>
+              <div class="lob-row-icon-badge"><i class="ti ti-plane"></i></div>
+              <div class="lob-row-name" style="flex:1">Air</div>
+              <i class="ti ti-chevron-down lob-row-chev"></i>
+            </div>
+            <div class="lob-sub-wrap"><div class="lob-sub-inner">
+              <div class="lob-sub-item" id="dir-sub-air-export" onclick="event.stopPropagation();setDirection('Export')">
+                <div class="lob-sub-name" style="flex:1">Air Export</div>
+                <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
+              </div>
+              <div class="lob-sub-item" id="dir-sub-air-import" onclick="event.stopPropagation();setDirection('Import')">
+                <div class="lob-sub-name" style="flex:1">Air Import</div>
+                <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="lob-row" id="lob-row-road" data-lob="road">
+            <div class="lob-row-head" onclick="toggleLobRow('road')">
+              <div class="lob-row-illus"></div>
+              <div class="lob-row-icon-badge"><i class="ti ti-truck"></i></div>
+              <div class="lob-row-name" style="flex:1">Roadways</div>
+              <i class="ti ti-chevron-down lob-row-chev"></i>
+            </div>
+            <div class="lob-sub-wrap"><div class="lob-sub-inner">
+              <div class="lob-sub-item" id="dir-sub-road-export" onclick="event.stopPropagation();setDirection('Export')">
+                <div class="lob-sub-name" style="flex:1">Road Export</div>
+                <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
+              </div>
+              <div class="lob-sub-item" id="dir-sub-road-domestic" onclick="event.stopPropagation();setDirection('Domestic')">
+                <div class="lob-sub-name" style="flex:1">Road Domestic</div>
+                <i class="ti ti-chevron-right" style="font-size:13px;color:rgba(255,255,255,.4)"></i>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="lob-row" id="lob-row-gen" data-lob="gen">
+            <div class="lob-row-head" onclick="selectGenLob()">
+              <div class="lob-row-illus"></div>
+              <div class="lob-row-icon-badge"><i class="ti ti-package"></i></div>
+              <div class="lob-row-name" style="flex:1">General</div>
+              <i class="ti ti-chevron-right" style="font-size:14px;color:rgba(255,255,255,.4)"></i>
+            </div>
           </div>
 
         </div>
@@ -1987,22 +2037,24 @@ let currentLob = null; // null = state 1, 'sea'|'air' = state 2/3
 
 function matchesCurrentLob(r) {
   const lobCode = (r.lob || '').toString().trim().toUpperCase();
-  if (!lobCode) return currentLob !== 'air' && currentLob !== 'road'; // no LOB code on record -> treat as Sea (legacy data)
+  if (!lobCode) return currentLob !== 'air' && currentLob !== 'road' && currentLob !== 'gen'; // no LOB code on record -> treat as Sea (legacy data)
   // USA (LogiSys/JPA schema) uses readable strings like "SEA EXPORT"/"SEA
   // IMPORT" rather than Indonesia/Thailand's short codes (FES/FIS/FEA/FIA/
   // FER/FIR) - detect by a space in the value, since short codes never have one
   if (lobCode.includes(' ')) {
     if (currentLob === 'air')  return lobCode.includes('AIR');
     if (currentLob === 'road') return lobCode.includes('ROAD');
+    if (currentLob === 'gen')  return lobCode.includes('GEN');
     return lobCode.includes('SEA');
   }
   if (currentLob === 'air')  return lobCode.endsWith('A');
   if (currentLob === 'road') return lobCode.endsWith('R');
+  if (currentLob === 'gen')  return lobCode === 'GEN' || lobCode.startsWith('GEN');
   return lobCode.endsWith('S');
 }
 
 function updateRailActive() {
-  ['sea','air','road'].forEach(l => {
+  ['sea','air','road','gen'].forEach(l => {
     document.getElementById('rail-' + l)?.classList.toggle('active', l === currentLob);
   });
 }
@@ -2096,7 +2148,7 @@ function toggleLobRow(lob) {
   hideTopbarFilters();
 
   // Close all rows, open the clicked one (accordion behavior)
-  ['sea','air','road','wh'].forEach(l => {
+  ['sea','air','road','gen','wh'].forEach(l => {
     document.getElementById('lob-row-' + l)?.classList.toggle('active', l === lob);
   });
 
@@ -2111,7 +2163,7 @@ function toggleLobRow(lob) {
     const t = document.getElementById('sk-hint-title');
     const s = document.getElementById('sk-hint-sub');
     if (t) t.textContent = 'Select a direction to get started';
-    if (s) s.innerHTML = 'Choose Export or Import<br>from the left panel';
+    if (s) s.innerHTML = lob === 'road' ? 'Choose Export or Domestic<br>from the left panel' : 'Choose Export or Import<br>from the left panel';
   }
 }
 
@@ -2121,7 +2173,11 @@ function setDirection(dir) {
   // Update sub-item active states for whichever LOB is currently open
   const idPrefix = currentLob === 'air' ? 'dir-sub-air-' : currentLob === 'road' ? 'dir-sub-road-' : 'dir-sub-';
   document.getElementById(idPrefix + 'export')?.classList.toggle('active', dir === 'Export');
-  document.getElementById(idPrefix + 'import')?.classList.toggle('active', dir === 'Import');
+  if (currentLob === 'road') {
+    document.getElementById(idPrefix + 'domestic')?.classList.toggle('active', dir === 'Domestic');
+  } else {
+    document.getElementById(idPrefix + 'import')?.classList.toggle('active', dir === 'Import');
+  }
 
   // Capture the LOB icon badge's position BEFORE the accordion collapses -
   // this is the actual transition that needed fixing: the icon (anchor/
@@ -2238,7 +2294,7 @@ function railExpand() {
   const t = document.getElementById('sk-hint-title');
   const s = document.getElementById('sk-hint-sub');
   if (t) t.textContent = 'Select a direction to get started';
-  if (s) s.innerHTML = 'Choose Export or Import<br>from the left panel';
+  if (s) s.innerHTML = currentLob === 'road' ? 'Choose Export or Domestic<br>from the left panel' : 'Choose Export or Import<br>from the left panel';
 }
 
 function refreshForDirection(dir) {
@@ -2250,6 +2306,66 @@ function refreshForDirection(dir) {
   renderPage(activePageId);
 }
 
+// General has no Export/Import split at all - just a LOB match, no direction filter
+function refreshForGen() {
+  allSRR = rawSRR.filter(r => matchesCurrentLob(r));
+  applyRLS();
+  const activePage = document.querySelector('.nav-item.active');
+  const activePageId = activePage?.getAttribute('onclick')?.match(/setPage\('([^']+)'/)?.[1] || 'summary';
+  initFilters(activePageId);
+  renderPage(activePageId);
+}
+
+// General's sidebar row is a single click straight to Summary, no Export/
+// Import sub-menu - mirrors setDirection()'s transition flow (icon FLIP,
+// accordion collapse, rail reveal, fade swap) but skips everything
+// direction-specific, since General has none.
+function selectGenLob() {
+  currentLob = 'gen';
+  currentDirection = null;
+
+  const lobForFlip = 'gen';
+  const sourceBadge = document.querySelector('#lob-row-gen .lob-row-icon-badge');
+  const fromRect = sourceBadge ? sourceBadge.getBoundingClientRect() : null;
+
+  const navZone = document.getElementById('lob-nav-zone');
+  if (navZone) navZone.classList.add('hidden-collapsed');
+  const rail = document.getElementById('lob-icon-rail');
+  if (rail) rail.classList.add('visible');
+
+  flipLobIconToRail(lobForFlip, fromRect);
+
+  const skPlaceholder = document.getElementById('sk-lob-placeholder');
+  const finishSwap = () => {
+    if (skPlaceholder) skPlaceholder.classList.remove('visible', 'fading-out');
+
+    const navScroll = document.getElementById('main-nav-scroll');
+    if (navScroll) navScroll.style.display = '';
+
+    const sysSec = document.getElementById('sys-section');
+    if (sysSec) sysSec.style.display = '';
+
+    document.querySelectorAll('.page').forEach(p => {
+      if (p.id !== 'sk-lob-placeholder') p.style.display = '';
+    });
+    showTopbarFilters();
+
+    refreshForGen();
+    updateRailActive();
+    updateTopbarLabel();
+
+    const summaryNav = document.getElementById('nav-summary');
+    if (summaryNav) setPage('summary', 'Summary', 'Summary', summaryNav);
+  };
+
+  if (skPlaceholder && skPlaceholder.classList.contains('visible')) {
+    skPlaceholder.classList.add('fading-out');
+    setTimeout(finishSwap, 420);
+  } else {
+    finishSwap();
+  }
+}
+
 function updateDirCounts() {
   // Job-count badges removed from all LOB Export/Import rows, per
   // request - this function is now a no-op kept only so existing calls
@@ -2257,10 +2373,10 @@ function updateDirCounts() {
 }
 
 function updateTopbarLabel() {
-  const lobNames = {sea:'Sea Ops', air:'Air Ops', road:'Roadways', wh:'Warehousing'};
+  const lobNames = {sea:'Sea Ops', air:'Air Ops', road:'Roadways', gen:'General', wh:'Warehousing'};
   const label = document.getElementById('tb-direction-label') || document.querySelector('.tb-subtitle');
   if (label && currentLob) {
-    label.textContent = lobNames[currentLob] + ' · ' + currentDirection;
+    label.textContent = currentDirection ? (lobNames[currentLob] + ' · ' + currentDirection) : lobNames[currentLob];
   }
 }
 
@@ -5067,7 +5183,7 @@ async function loadData() {
 
     // Only auto-navigate to summary if LOB+direction already selected (currentLob set)
     // Otherwise stay on LOB selection screen
-    if (currentLob && ['sea','air'].includes(currentLob)) {
+    if (currentLob && ['sea','air','road','gen'].includes(currentLob)) {
       setPage('summary', 'Summary', 'Summary', document.querySelector('#sec-summary-body .nav-item'));
     } else {
       document.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
