@@ -18,13 +18,15 @@ let cache = { data: null, builtAt: null };
 
 async function buildCache(db) {
   console.log('[USA-OPS] Building cache...');
-  const expDocs   = await db.collection('usa_ops_export').find({}).toArray();
-  const impDocs   = await db.collection('usa_ops_import').find({}).toArray();
-  const userDocs  = await db.collection('users').find({}).toArray();
+  // usa_ops_jobs replaces the old usa_ops_export/usa_ops_import split - one
+  // combined collection now holds every LOB (Sea/Road/Air Export, Sea/Air
+  // Import, General, Road Domestic), with a `direction` field on each
+  // record (Export/Import, or absent for General/Road Domestic)
+  const jobDocs    = await db.collection('usa_ops_jobs').find({}).toArray();
+  const userDocs   = await db.collection('users').find({}).toArray();
   const etdEtaDocs = await db.collection('usa_ops_etdeta').find({}).toArray();
-  const allDocs   = [...expDocs, ...impDocs];
-  console.log(`[USA-OPS] Total docs: ${allDocs.length}, users: ${userDocs.length}, etdEta: ${etdEtaDocs.length}`);
-  cache = { data: allDocs, users: userDocs, etdEta: etdEtaDocs, builtAt: new Date().toISOString() };
+  console.log(`[USA-OPS] Total docs: ${jobDocs.length}, users: ${userDocs.length}, etdEta: ${etdEtaDocs.length}`);
+  cache = { data: jobDocs, users: userDocs, etdEta: etdEtaDocs, builtAt: new Date().toISOString() };
   return cache;
 }
 
@@ -43,7 +45,7 @@ export default async function handler(req, res) {
     if (action === 'wipe') {
       const c  = await getClient();
       const db = c.db(DB);
-      const colName = direction === 'Export' ? 'usa_ops_export' : direction === 'Import' ? 'usa_ops_import' : direction === 'EtdEta' ? 'usa_ops_etdeta' : null;
+      const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : null;
       if (!colName) return res.status(400).json({ error: 'Invalid direction' });
       const result = await db.collection(colName).deleteMany({});
       cache = { data: null, builtAt: null };
@@ -54,7 +56,8 @@ export default async function handler(req, res) {
       if (!records || !records.length) return res.status(400).json({ error: 'No records' });
       const c  = await getClient();
       const db = c.db(DB);
-      const colName = direction === 'Export' ? 'usa_ops_export' : direction === 'Import' ? 'usa_ops_import' : 'usa_ops_etdeta';
+      const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : null;
+      if (!colName) return res.status(400).json({ error: 'Invalid direction' });
       const result = await db.collection(colName).insertMany(records, { ordered: false });
       cache = { data: null, builtAt: null };
       return res.status(200).json({ inserted: result.insertedCount, direction });
