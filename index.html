@@ -6031,7 +6031,14 @@ const SUMMARY_REPORTS = [
       // Lock Date blank. jobStatus doesn't exist for USA, so the old check
       // always evaluated true (flagging 100% of jobs as open, always)
       if (r.jobDate !== undefined) return !r.operationLockDate || String(r.operationLockDate).trim() === '';
-      return !['CMP','CLS'].includes((r.jobStatus||'').toUpperCase());
+      // JPA-schema fallback (not USA's own data, which always has jobDate) -
+      // matches renderOpenJobs()'s own 7-day ETD cutoff on this branch exactly
+      if (['CMP','CLS'].includes((r.jobStatus||'').toUpperCase())) return false;
+      const ojCutoff = new Date();
+      ojCutoff.setHours(0,0,0,0);
+      ojCutoff.setDate(ojCutoff.getDate() - 7);
+      const etd = r.etdDate ? new Date(r.etdDate) : null;
+      return etd && etd < ojCutoff;
     },
   },
   {
