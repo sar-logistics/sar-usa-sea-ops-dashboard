@@ -994,10 +994,10 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <div class="sidebar-body-row">
       <!-- Icon rail — visible once a direction is selected -->
       <div class="lob-icon-rail" id="lob-icon-rail">
-        <div class="rail-btn active" id="rail-sea" onclick="railExpand()" title="Sea"><i class="ti ti-anchor"></i></div>
-        <div class="rail-btn" id="rail-air" onclick="railExpand()" title="Air"><i class="ti ti-plane"></i></div>
-        <div class="rail-btn" id="rail-road" onclick="railExpand()" title="Roadways"><i class="ti ti-truck"></i></div>
-        <div class="rail-btn" id="rail-gen" onclick="railExpand()" title="General"><i class="ti ti-package"></i></div>
+        <div class="rail-btn active" id="rail-sea" onclick="railSelect('sea')" title="Sea"><i class="ti ti-anchor"></i></div>
+        <div class="rail-btn" id="rail-air" onclick="railSelect('air')" title="Air"><i class="ti ti-plane"></i></div>
+        <div class="rail-btn" id="rail-road" onclick="railSelect('road')" title="Roadways"><i class="ti ti-truck"></i></div>
+        <div class="rail-btn" id="rail-gen" onclick="railSelect('gen')" title="General"><i class="ti ti-package"></i></div>
       </div>
       <div class="sidebar-main-col">
       <!-- LOB Navigation — Accordion List -->
@@ -2270,6 +2270,22 @@ function flipLobIconToRail(lob, fromRect) {
 }
 
 // Clicking the rail's Sea icon re-expands the accordion so the user can switch direction
+// Clicking a rail icon now opens THAT LOB on the home screen. Every icon used to call
+// railExpand() directly, which only returns home with whichever LOB was already open -
+// so the truck icon never actually selected Road.
+function railSelect(lob) {
+  if (lob === 'gen') { selectGenLob(); return; }          // General has no direction picker - same as clicking its row
+  railExpand();                                   // back to the home screen: restores the accordion, hides pages, shows the prompt, clears the direction
+  const row = document.getElementById('lob-row-' + lob);
+  if (row && !row.classList.contains('active')) {
+    toggleLobRow(lob);                                   // open the clicked LOB's row (it would COLLAPSE a row that is already open, hence the check)
+  } else {
+    currentLob = lob;                                    // that LOB's row is already open - just make sure it is the current one
+    updateRailActive();
+    updateTopbarLabel();
+  }
+}
+
 function railExpand() {
   // Back on the landing/LOB-selection screen - no direction is selected any more,
   // so drop it from the topbar subtitle until one is picked again
