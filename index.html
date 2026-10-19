@@ -1144,7 +1144,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
       <div class="tb-divider"></div>
       <div class="tb-title-wrap">
         <div class="tb-title">SAR Logistics · USA</div>
-        <div class="tb-subtitle">Sea Ops · Export</div>
+        <div class="tb-subtitle">Sea Ops</div>
       </div>
     </div>
     <div class="tb-divider"></div>
@@ -2169,6 +2169,7 @@ function toggleLobRow(lob) {
 
 function setDirection(dir) {
   currentDirection = dir;
+      directionConfirmed = true;
 
   // Update sub-item active states for whichever LOB is currently open
   const idPrefix = currentLob === 'air' ? 'dir-sub-air-' : currentLob === 'road' ? 'dir-sub-road-' : 'dir-sub-';
@@ -2267,6 +2268,10 @@ function flipLobIconToRail(lob, fromRect) {
 
 // Clicking the rail's Sea icon re-expands the accordion so the user can switch direction
 function railExpand() {
+  // Back on the landing/LOB-selection screen - no direction is selected any more,
+  // so drop it from the topbar subtitle until one is picked again
+  directionConfirmed = false;
+  updateTopbarLabel();
   const navZone = document.getElementById('lob-nav-zone');
   if (navZone) navZone.classList.remove('hidden-collapsed');
   const rail = document.getElementById('lob-icon-rail');
@@ -2375,12 +2380,17 @@ function updateDirCounts() {
 function updateTopbarLabel() {
   const lobNames = {sea:'Sea Ops', air:'Air Ops', road:'Roadways', gen:'General', wh:'Warehousing'};
   const label = document.getElementById('tb-direction-label') || document.querySelector('.tb-subtitle');
-  if (label && currentLob) {
-    label.textContent = currentDirection ? (lobNames[currentLob] + ' · ' + currentDirection) : lobNames[currentLob];
+  if (label) {
+    const base = (currentLob && lobNames[currentLob]) || 'Sea Ops';
+    // Show the direction only once the user has actually picked one - before that
+    // (landing screen) the default 'Export' used to be shown as if it were chosen.
+    // General has no direction at all (currentDirection === null).
+    label.textContent = (currentDirection && directionConfirmed) ? (base + ' · ' + currentDirection) : base;
   }
 }
 
 let currentDirection = 'Export'; // 'Export' or 'Import'
+let directionConfirmed = false; // true only once the user has actually picked a direction via setDirection() - keeps the topbar subtitle ('Sea Ops') free of a default direction on the landing screen, and stops the post-load auto-navigate from skipping the direction picker
  
 let allJPA = [];
 let rawJPA = [];
@@ -5181,9 +5191,15 @@ async function loadData() {
     renderSummary();
     _renderedPages = { summary: true };
 
-    // Only auto-navigate to summary if LOB+direction already selected (currentLob set)
-    // Otherwise stay on LOB selection screen
-    if (currentLob && ['sea','air','road','gen'].includes(currentLob)) {
+    // Only auto-navigate to summary if LOB+direction already selected.
+    // The landing screen is clickable while data is still loading: clicking a LOB
+    // row sets currentLob BEFORE any direction is chosen, so checking currentLob
+    // alone sent the user straight into the data the moment loading finished.
+    // directionConfirmed is true only after setDirection() has run; otherwise stay
+    // on the LOB/direction selection screen.
+    // (General has no direction by design - selectGenLob() goes straight to Summary,
+    // so it is allowed through.)
+    if (currentLob && ['sea','air','road','gen'].includes(currentLob) && (directionConfirmed || currentLob === 'gen')) {
       setPage('summary', 'Summary', 'Summary', document.querySelector('#sec-summary-body .nav-item'));
     } else {
       document.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
