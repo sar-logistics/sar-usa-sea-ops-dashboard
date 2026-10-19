@@ -989,6 +989,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
         <div style="width:1px;height:24px;background:rgba(255,255,255,.15);flex-shrink:0"></div>
         <div><div style="font-size:16px;font-weight:700;color:#F0F6FC;line-height:1.2">SAR Logistics</div><div style="font-size:11.5px;color:rgba(181,212,244,.85);margin-top:1px;font-weight:500">USA</div></div>
       </div>
+      <div style="height:12px;display:flex;align-items:center;justify-content:flex-end"><span id="sidebar-direction-label" style="font-size:10px;font-weight:700;letter-spacing:.12em;color:rgba(181,212,244,.85);text-transform:uppercase;white-space:nowrap"></span></div>
     </div>
       <div class="sidebar-body-row">
       <!-- Icon rail — visible once a direction is selected -->
@@ -2127,6 +2128,8 @@ function toggleLobRow(lob) {
   }
 
   currentLob = lob;
+  // Switching LOB returns to the direction prompt - nothing is selected for this LOB yet
+  directionConfirmed = false;
 
   // Make sure accordion is visible (in case rail was showing)
   const navZone = document.getElementById('lob-nav-zone');
@@ -2386,6 +2389,14 @@ function updateTopbarLabel() {
     // (landing screen) the default 'Export' used to be shown as if it were chosen.
     // General has no direction at all (currentDirection === null).
     label.textContent = (currentDirection && directionConfirmed) ? (base + ' · ' + currentDirection) : base;
+  }
+  // Sidebar header label. The topbar title block lives inside .tb-logo-wrap, which is
+  // display:none in this layout, so the sidebar is where the user actually sees which
+  // direction they picked (same placement/style as the Air Ops dashboard).
+  const sidebarDirLabel = document.getElementById('sidebar-direction-label');
+  if (sidebarDirLabel) {
+    const shortName = {sea:'Sea', air:'Air', road:'Road', wh:'Warehouse'}[currentLob];
+    sidebarDirLabel.textContent = (directionConfirmed && currentDirection && shortName) ? (shortName + ' ' + currentDirection) : '';
   }
 }
 
