@@ -2305,7 +2305,15 @@ function flipLobIconToRail(lob, fromRect) {
 // railExpand() directly, which only returns home with whichever LOB was already open -
 // so the truck icon never actually selected Road.
 function railSelect(lob) {
-  if (lob === 'gen') { railExpand(); return; }             // General has no direction picker or sub-menu to open - just go back to the home screen like every other LOB's rail icon does, instead of re-selecting itself
+  if (lob === 'gen') {
+    railExpand();
+    // General has no sub-menu, so toggleLobRow() never runs for it - mark
+    // its row active directly so it's visually clear this is the LOB that
+    // was open, same highlighted treatment every other row gets
+    document.querySelectorAll('.lob-row').forEach(r => r.classList.remove('active'));
+    document.getElementById('lob-row-gen')?.classList.add('active');
+    return;
+  }
   railExpand();                                   // back to the home screen: restores the accordion, hides pages, shows the prompt, clears the direction
   const row = document.getElementById('lob-row-' + lob);
   if (row && !row.classList.contains('active')) {
