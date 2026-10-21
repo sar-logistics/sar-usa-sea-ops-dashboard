@@ -4426,7 +4426,7 @@ async function refreshData(pageId) {
     updateRateLabel();
     rawJPA    = [];
     allUsers  = data.users      || [];
-    allSRR   = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase());
+    allSRR   = rawSRR.filter(r => !currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase());
     allJPA   = [];
     // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
     // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
@@ -5237,7 +5237,7 @@ async function loadData() {
           if (s2 === 'HIT') {
             // Full cache ready — update data, re-render only the currently visible page
             rawSRR = d2.records || []; rawJPA = [];
-            allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
+            allSRR = rawSRR.filter(r => (!currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r)); allJPA = [...rawJPA];
             applyRLS();
             try { renderPage(getActivePage()); } catch(e) {}
             updateMainMetricsBadges();
@@ -5255,7 +5255,7 @@ async function loadData() {
               if (!r3.ok) return;
               const d3 = await r3.json();
               rawSRR = d3.records || []; rawJPA = [];
-              allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r)); allJPA = [...rawJPA];
+              allSRR = rawSRR.filter(r => (!currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r)); allJPA = [...rawJPA];
               applyRLS();
               try { renderPage(getActivePage()); } catch(e) {}
               updateMainMetricsBadges();
@@ -5269,8 +5269,9 @@ async function loadData() {
     rawSRR     = data.records    || [];
     rawJPA     = [];
     allUsers   = data.users      || [];
-    // Filter by current direction
-    allSRR = rawSRR.filter(r => (r.direction || '').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    // Filter by current direction - General (currentLob === 'gen') has no
+    // direction, currentDirection is null for it, so skip the direction check
+    allSRR = rawSRR.filter(r => (!currentDirection || (r.direction || '').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r));
     allJPA = [...rawJPA];
     // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
     // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
@@ -5612,8 +5613,16 @@ function applyRLS() {
   // Data scoping — Admin is the only bypass. Every other role is scoped
   // purely by name + reporting-to position in allUsers, ignoring the
   // role/persona label entirely.
+  // General (currentLob === 'gen') has no direction at all - its records
+  // carry no direction field, and currentDirection is null for it, so the
+  // direction check must be skipped entirely rather than calling
+  // .toLowerCase() on null, which would throw and silently abort the rest
+  // of the selection flow (including the setPage('summary',...) call that
+  // actually shows the page)
+  const dirMatches = r => !currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase();
+
   if (isAdmin) {
-    allSRR = rawSRR.filter(r => (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+    allSRR = rawSRR.filter(r => dirMatches(r) && matchesCurrentLob(r));
     allJPA = [...rawJPA];
     return;
   }
@@ -5621,7 +5630,7 @@ function applyRLS() {
   const email = (currentUser.email || '').toLowerCase().trim();
   const visibleJobOwners = getVisibleJobOwners(email);
 
-  allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && (r.direction||'').toLowerCase() === currentDirection.toLowerCase() && matchesCurrentLob(r));
+  allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && dirMatches(r) && matchesCurrentLob(r));
   allJPA = rawJPA.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()));
 }
 
