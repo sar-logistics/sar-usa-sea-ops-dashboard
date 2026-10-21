@@ -2378,6 +2378,7 @@ function refreshForGen() {
 function selectGenLob() {
   currentLob = 'gen';
   currentDirection = null;
+  updateRailActive(); // immediate, so the rail highlight reflects General right away rather than waiting out the fade transition - General has no sub-menu, so this is the only visual confirmation of which LOB is open
 
   const lobForFlip = 'gen';
   const sourceBadge = document.querySelector('#lob-row-gen .lob-row-icon-badge');
