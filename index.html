@@ -6656,6 +6656,11 @@ function renderSummary() {
   window.sumShowDetail = function(si) {
     const s    = reportStats[si];
     const col  = flagCol(s.pct);
+    // Remember which checkpoint was selected, by id (not index, in case
+    // SUMMARY_REPORTS order ever changes) - so navigating away and back to
+    // Summary can restore it instead of resetting to the "Select a
+    // checkpoint" placeholder every time
+    window._summarySelectedReportId = s.report.id;
 
     // highlight active row
     reportStats.forEach((_,i) => {
@@ -6730,8 +6735,19 @@ function renderSummary() {
   };
 
 
-  // auto-select worst checkpoint on load
-  setTimeout(() => { if(reportStats.length) window.sumShowDetail(0); }, 100);
+  // Restore whichever checkpoint was last selected (by id, set in
+  // sumShowDetail above), instead of always resetting to index 0 on every
+  // re-render - falls back to 0 only on first load, when nothing has been
+  // selected yet, or if that id no longer exists in the current reportStats
+  setTimeout(() => {
+    if (!reportStats.length) return;
+    let restoreIndex = 0;
+    if (window._summarySelectedReportId) {
+      const foundIdx = reportStats.findIndex(s => s.report.id === window._summarySelectedReportId);
+      if (foundIdx !== -1) restoreIndex = foundIdx;
+    }
+    window.sumShowDetail(restoreIndex);
+  }, 100);
 
 
 }
