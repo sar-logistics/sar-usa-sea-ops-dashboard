@@ -64,11 +64,28 @@ export default async function handler(req, res) {
       // item counts could run ahead of the sheet. Jobs are one row per shipment;
       // EtdEta is one row per charge line on a shipment, so its key also needs
       // the charge and date to stay unique per line.
+      //
+      // shipmentId+charge+etdEtaNew is not always unique on its own - a shipment
+      // can legitimately have two separate charge lines of the same type at the
+      // exact same ETD/ETA New timestamp (confirmed live: SH00041307 had two
+      // distinct "TANK TRANSPORTATION CHARGES" lines, $2,511 and $939, same
+      // date). A bare upsert on that key silently collapsed them into one,
+      // dropping a real line. __seq breaks the tie by position within each
+      // repeated key, in the order the sheet sends them, so repeat lines land
+      // on separate documents instead of overwriting each other, while an exact
+      // re-push of the same batch still lines up seq-for-seq and updates in
+      // place rather than duplicating.
       const keyFields = direction === 'Jobs' ? ['shipmentId'] : ['shipmentId', 'charge', 'etdEtaNew'];
+      const seqCounts = {};
       const ops = records.map(r => {
         const filter = {};
         keyFields.forEach(k => { filter[k] = r[k]; });
-        return { updateOne: { filter, update: { $set: r }, upsert: true } };
+        if (direction !== 'Jobs') {
+          const baseKey = keyFields.map(k => r[k]).join('\u0001');
+          filter.__seq = seqCounts[baseKey] = (seqCounts[baseKey] || 0) + 1;
+        }
+        const doc = direction !== 'Jobs' ? Object.assign({}, r, { __seq: filter.__seq }) : r;
+        return { updateOne: { filter, update: { $set: doc }, upsert: true } };
       });
       const result = await db.collection(colName).bulkWrite(ops, { ordered: false });
       cache = { data: null, builtAt: null };
