@@ -3967,10 +3967,13 @@ function etdEtaMatchesDirection(r) {
   // === 'Domestic') have no Revenue Not Billed/Cost Not Posted equivalent,
   // so they correctly match nothing here rather than silently falling into
   // an 'Import' check that was never meant for them
-  // ETD/ETA lob values use the short EXP/IMP suffix (e.g. "FFWD SEA EXP"),
-  // not the full words EXPORT/IMPORT - confirmed directly via console
-  if (currentDirection === 'Export') return lob.indexOf('EXP') !== -1;
-  if (currentDirection === 'Import') return lob.indexOf('IMP') !== -1;
+  // Scoped to Sea specifically (not a bare 'EXP'/'IMP' substring match) -
+  // this is the USA SEA Ops dashboard, and a substring match also caught
+  // 'FFWD ROAD EXP' and 'FFWD AIR EXP' (confirmed live: 4 Road Export lines
+  // with positive Unposted Cost would leak into this Sea report once their
+  // dates fell inside the selected period)
+  if (currentDirection === 'Export') return lob === 'FFWD SEA EXP';
+  if (currentDirection === 'Import') return lob === 'FFWD SEA IMP';
   return false;
 }
 
