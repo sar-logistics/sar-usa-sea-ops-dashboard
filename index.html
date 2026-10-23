@@ -3961,7 +3961,15 @@ function etdEtaColKey(row, view) {
 
 function etdEtaMatchesDirection(r) {
   const lob = (r.lob || '').toUpperCase();
-  return currentDirection === 'Export' ? lob.indexOf('EXPORT') !== -1 : lob.indexOf('IMPORT') !== -1;
+  // Explicit per-direction check instead of a binary ternary - Export/
+  // Import are the only directions this WIP data concept applies to.
+  // General (currentDirection === null) and Road Domestic (currentDirection
+  // === 'Domestic') have no Revenue Not Billed/Cost Not Posted equivalent,
+  // so they correctly match nothing here rather than silently falling into
+  // an 'Import' check that was never meant for them
+  if (currentDirection === 'Export') return lob.indexOf('EXPORT') !== -1;
+  if (currentDirection === 'Import') return lob.indexOf('IMPORT') !== -1;
+  return false;
 }
 
 function filterEtdEtaByDate(records, pageId) {
