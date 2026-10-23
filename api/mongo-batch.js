@@ -58,9 +58,21 @@ export default async function handler(req, res) {
       const db = c.db(DB);
       const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : null;
       if (!colName) return res.status(400).json({ error: 'Invalid direction' });
-      const result = await db.collection(colName).insertMany(records, { ordered: false });
+      // Upsert on a natural key instead of insertMany: a re-run or retry of the
+      // same sync batch used to insert duplicate rows every time (insertMany has
+      // no notion of "this row already exists"), which is why the dashboard's
+      // item counts could run ahead of the sheet. Jobs are one row per shipment;
+      // EtdEta is one row per charge line on a shipment, so its key also needs
+      // the charge and date to stay unique per line.
+      const keyFields = direction === 'Jobs' ? ['shipmentId'] : ['shipmentId', 'charge', 'etdEtaNew'];
+      const ops = records.map(r => {
+        const filter = {};
+        keyFields.forEach(k => { filter[k] = r[k]; });
+        return { updateOne: { filter, update: { $set: r }, upsert: true } };
+      });
+      const result = await db.collection(colName).bulkWrite(ops, { ordered: false });
       cache = { data: null, builtAt: null };
-      return res.status(200).json({ inserted: result.insertedCount, direction });
+      return res.status(200).json({ upserted: result.upsertedCount, modified: result.modifiedCount, direction });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
