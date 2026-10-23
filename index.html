@@ -3960,20 +3960,23 @@ function etdEtaColKey(row, view) {
 }
 
 function etdEtaMatchesDirection(r) {
-  const lob = (r.lob || '').toUpperCase();
+  const lobXI = (r.lobExportImport || '').toUpperCase();
   // Explicit per-direction check instead of a binary ternary - Export/
   // Import are the only directions this WIP data concept applies to.
   // General (currentDirection === null) and Road Domestic (currentDirection
   // === 'Domestic') have no Revenue Not Billed/Cost Not Posted equivalent,
   // so they correctly match nothing here rather than silently falling into
   // an 'Import' check that was never meant for them
-  // Scoped to Sea specifically (not a bare 'EXP'/'IMP' substring match) -
-  // this is the USA SEA Ops dashboard, and a substring match also caught
+  // Matches the sheet's own "LOB (Export/Import)" column (lobExportImport)
+  // instead of pattern-matching the raw lob field - this is the USA SEA Ops
+  // dashboard, and a bare 'EXP'/'IMP' substring match on raw lob also caught
   // 'FFWD ROAD EXP' and 'FFWD AIR EXP' (confirmed live: 4 Road Export lines
   // with positive Unposted Cost would leak into this Sea report once their
-  // dates fell inside the selected period)
-  if (currentDirection === 'Export') return lob === 'FFWD SEA EXP';
-  if (currentDirection === 'Import') return lob === 'FFWD SEA IMP';
+  // dates fell inside the selected period). lobExportImport is the sheet's
+  // own authoritative Export/Import classification (e.g. 'SEA EXPORT'),
+  // already scoped to Sea.
+  if (currentDirection === 'Export') return lobXI === 'SEA EXPORT';
+  if (currentDirection === 'Import') return lobXI === 'SEA IMPORT';
   return false;
 }
 
