@@ -76,18 +76,50 @@ export default async function handler(req, res) {
       // re-push of the same batch still lines up seq-for-seq and updates in
       // place rather than duplicating.
       const keyFields = direction === 'Jobs' ? ['shipmentId'] : ['shipmentId', 'charge', 'etdEtaNew'];
-      const seqCounts = {};
-      const ops = records.map(r => {
-        const filter = {};
-        keyFields.forEach(k => { filter[k] = r[k]; });
-        if (direction !== 'Jobs') {
-          const baseKey = keyFields.map(k => r[k]).join('\u0001');
-          filter.__seq = seqCounts[baseKey] = (seqCounts[baseKey] || 0) + 1;
-        }
-        const doc = direction !== 'Jobs' ? Object.assign({}, r, { __seq: filter.__seq }) : r;
-        return { updateOne: { filter, update: { $set: doc }, upsert: true } };
-      });
-      const result = await db.collection(colName).bulkWrite(ops, { ordered: false });
+      const col = db.collection(colName);
+      let ops;
+      if (direction === 'Jobs') {
+        ops = records.map(r => {
+          const filter = {};
+          keyFields.forEach(k => { filter[k] = r[k]; });
+          return { updateOne: { filter, update: { $set: r }, upsert: true } };
+        });
+      } else {
+        // The sync script sends EtdEta in chunks (500 rows per call), each as its
+        // own request - a __seq counter scoped to just this request's `records`
+        // resets to 0 every chunk, so two repeat-key rows landing in different
+        // chunks both get __seq 1 and the later chunk overwrites the earlier one.
+        // Seeding the counter from what's already in the DB for these keys (which
+        // includes earlier chunks of the same resync) keeps __seq contiguous
+        // across the whole push, not just within one HTTP call.
+        const baseKeyOf = r => keyFields.map(k => r[k]).join('\u0001');
+        const uniqueKeys = [...new Set(records.map(baseKeyOf))];
+        const orFilters = uniqueKeys.map(k => {
+          const parts = k.split('\u0001');
+          const f = {}; keyFields.forEach((kf, i) => { f[kf] = parts[i]; });
+          return f;
+        });
+        const projection = { __seq: 1 };
+        keyFields.forEach(k => { projection[k] = 1; });
+        const existing = orFilters.length
+          ? await col.find({ $or: orFilters }, { projection }).toArray()
+          : [];
+        const maxSeq = {};
+        existing.forEach(doc => {
+          const k = keyFields.map(kf => doc[kf]).join('\u0001');
+          maxSeq[k] = Math.max(maxSeq[k] || 0, doc.__seq || 0);
+        });
+        ops = records.map(r => {
+          const k = baseKeyOf(r);
+          const seq = (maxSeq[k] = (maxSeq[k] || 0) + 1);
+          const filter = {};
+          keyFields.forEach(kf => { filter[kf] = r[kf]; });
+          filter.__seq = seq;
+          const doc = Object.assign({}, r, { __seq: seq });
+          return { updateOne: { filter, update: { $set: doc }, upsert: true } };
+        });
+      }
+      const result = await col.bulkWrite(ops, { ordered: false });
       cache = { data: null, builtAt: null };
       return res.status(200).json({ upserted: result.upsertedCount, modified: result.modifiedCount, direction });
     }
