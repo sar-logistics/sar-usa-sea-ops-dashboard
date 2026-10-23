@@ -3967,8 +3967,10 @@ function etdEtaMatchesDirection(r) {
   // === 'Domestic') have no Revenue Not Billed/Cost Not Posted equivalent,
   // so they correctly match nothing here rather than silently falling into
   // an 'Import' check that was never meant for them
-  if (currentDirection === 'Export') return lob.indexOf('EXPORT') !== -1;
-  if (currentDirection === 'Import') return lob.indexOf('IMPORT') !== -1;
+  // ETD/ETA lob values use the short EXP/IMP suffix (e.g. "FFWD SEA EXP"),
+  // not the full words EXPORT/IMPORT - confirmed directly via console
+  if (currentDirection === 'Export') return lob.indexOf('EXP') !== -1;
+  if (currentDirection === 'Import') return lob.indexOf('IMP') !== -1;
   return false;
 }
 
