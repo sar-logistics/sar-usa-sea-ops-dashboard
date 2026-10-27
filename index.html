@@ -860,48 +860,55 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
    .freeze-5 table never accidentally freezes whatever lands in that slot
    (e.g. Sales Person). Fixed per-column widths with cumulative left offsets:
    140/100/110/160/140/130px -> left 0/140/240/350/510/650 */
-.dv-tbl.freeze-5 thead th:nth-child(1), .dv-tbl.freeze-6 thead th:nth-child(1),
-.dv-tbl.freeze-5 thead th:nth-child(2), .dv-tbl.freeze-6 thead th:nth-child(2),
-.dv-tbl.freeze-5 thead th:nth-child(3), .dv-tbl.freeze-6 thead th:nth-child(3),
-.dv-tbl.freeze-5 thead th:nth-child(4), .dv-tbl.freeze-6 thead th:nth-child(4),
+.dv-tbl.freeze-5 thead th:nth-child(1), .dv-tbl.freeze-4 thead th:nth-child(1), .dv-tbl.freeze-6 thead th:nth-child(1),
+.dv-tbl.freeze-5 thead th:nth-child(2), .dv-tbl.freeze-4 thead th:nth-child(2), .dv-tbl.freeze-6 thead th:nth-child(2),
+.dv-tbl.freeze-5 thead th:nth-child(3), .dv-tbl.freeze-4 thead th:nth-child(3), .dv-tbl.freeze-6 thead th:nth-child(3),
+.dv-tbl.freeze-5 thead th:nth-child(4), .dv-tbl.freeze-4 thead th:nth-child(4), .dv-tbl.freeze-6 thead th:nth-child(4),
 .dv-tbl.freeze-5 thead th:nth-child(5), .dv-tbl.freeze-6 thead th:nth-child(5),
 .dv-tbl.freeze-6 thead th:nth-child(6),
-.dv-tbl.freeze-5 tbody td:nth-child(1), .dv-tbl.freeze-6 tbody td:nth-child(1),
-.dv-tbl.freeze-5 tbody td:nth-child(2), .dv-tbl.freeze-6 tbody td:nth-child(2),
-.dv-tbl.freeze-5 tbody td:nth-child(3), .dv-tbl.freeze-6 tbody td:nth-child(3),
-.dv-tbl.freeze-5 tbody td:nth-child(4), .dv-tbl.freeze-6 tbody td:nth-child(4),
+.dv-tbl.freeze-5 tbody td:nth-child(1), .dv-tbl.freeze-4 tbody td:nth-child(1), .dv-tbl.freeze-6 tbody td:nth-child(1),
+.dv-tbl.freeze-5 tbody td:nth-child(2), .dv-tbl.freeze-4 tbody td:nth-child(2), .dv-tbl.freeze-6 tbody td:nth-child(2),
+.dv-tbl.freeze-5 tbody td:nth-child(3), .dv-tbl.freeze-4 tbody td:nth-child(3), .dv-tbl.freeze-6 tbody td:nth-child(3),
+.dv-tbl.freeze-5 tbody td:nth-child(4), .dv-tbl.freeze-4 tbody td:nth-child(4), .dv-tbl.freeze-6 tbody td:nth-child(4),
 .dv-tbl.freeze-5 tbody td:nth-child(5), .dv-tbl.freeze-6 tbody td:nth-child(5),
 .dv-tbl.freeze-6 tbody td:nth-child(6),
-.dv-tbl.freeze-5 tfoot td:nth-child(1), .dv-tbl.freeze-6 tfoot td:nth-child(1),
-.dv-tbl.freeze-5 tfoot td:nth-child(2), .dv-tbl.freeze-6 tfoot td:nth-child(2),
-.dv-tbl.freeze-5 tfoot td:nth-child(3), .dv-tbl.freeze-6 tfoot td:nth-child(3),
-.dv-tbl.freeze-5 tfoot td:nth-child(4), .dv-tbl.freeze-6 tfoot td:nth-child(4),
+.dv-tbl.freeze-5 tfoot td:nth-child(1), .dv-tbl.freeze-4 tfoot td:nth-child(1), .dv-tbl.freeze-6 tfoot td:nth-child(1),
+.dv-tbl.freeze-5 tfoot td:nth-child(2), .dv-tbl.freeze-4 tfoot td:nth-child(2), .dv-tbl.freeze-6 tfoot td:nth-child(2),
+.dv-tbl.freeze-5 tfoot td:nth-child(3), .dv-tbl.freeze-4 tfoot td:nth-child(3), .dv-tbl.freeze-6 tfoot td:nth-child(3),
+.dv-tbl.freeze-5 tfoot td:nth-child(4), .dv-tbl.freeze-4 tfoot td:nth-child(4), .dv-tbl.freeze-6 tfoot td:nth-child(4),
 .dv-tbl.freeze-5 tfoot td:nth-child(5), .dv-tbl.freeze-6 tfoot td:nth-child(5),
 .dv-tbl.freeze-6 tfoot td:nth-child(6){
   position:sticky;z-index:15;background:#f8fafc;border-right:1px solid #e2e8f0;
 }
-.dv-tbl.freeze-5 thead th:nth-child(1), .dv-tbl.freeze-6 thead th:nth-child(1){ left:0;    z-index:26;min-width:140px }
-.dv-tbl.freeze-5 thead th:nth-child(2), .dv-tbl.freeze-6 thead th:nth-child(2){ left:140px;z-index:25;min-width:100px }
-.dv-tbl.freeze-5 thead th:nth-child(3), .dv-tbl.freeze-6 thead th:nth-child(3){ left:240px;z-index:24;min-width:110px }
-.dv-tbl.freeze-5 thead th:nth-child(4), .dv-tbl.freeze-6 thead th:nth-child(4){ left:350px;z-index:23;min-width:160px }
+.dv-tbl.freeze-5 thead th:nth-child(1), .dv-tbl.freeze-4 thead th:nth-child(1), .dv-tbl.freeze-6 thead th:nth-child(1){ left:0;    z-index:26;min-width:140px }
+.dv-tbl.freeze-5 thead th:nth-child(2), .dv-tbl.freeze-4 thead th:nth-child(2), .dv-tbl.freeze-6 thead th:nth-child(2){ left:140px;z-index:25;min-width:100px }
+.dv-tbl.freeze-5 thead th:nth-child(3), .dv-tbl.freeze-4 thead th:nth-child(3), .dv-tbl.freeze-6 thead th:nth-child(3){ left:240px;z-index:24;min-width:110px }
+.dv-tbl.freeze-5 thead th:nth-child(4), .dv-tbl.freeze-4 thead th:nth-child(4), .dv-tbl.freeze-6 thead th:nth-child(4){ left:350px;z-index:23;min-width:160px }
 .dv-tbl.freeze-5 thead th:nth-child(5), .dv-tbl.freeze-6 thead th:nth-child(5){ left:510px;z-index:22;min-width:140px }
 .dv-tbl.freeze-6 thead th:nth-child(6){ left:650px;z-index:21;min-width:130px }
-.dv-tbl.freeze-5 tbody td:nth-child(1), .dv-tbl.freeze-6 tbody td:nth-child(1){ left:0;    background:#fff;font-weight:600;color:#0f172a;font-size:12px }
-.dv-tbl.freeze-5 tbody td:nth-child(2), .dv-tbl.freeze-6 tbody td:nth-child(2){ left:140px;background:#fff }
-.dv-tbl.freeze-5 tbody td:nth-child(3), .dv-tbl.freeze-6 tbody td:nth-child(3){ left:240px;background:#fff }
-.dv-tbl.freeze-5 tbody td:nth-child(4), .dv-tbl.freeze-6 tbody td:nth-child(4){ left:350px;background:#fff }
+.dv-tbl.freeze-5 tbody td:nth-child(1), .dv-tbl.freeze-4 tbody td:nth-child(1), .dv-tbl.freeze-6 tbody td:nth-child(1){ left:0;    background:#fff;font-weight:600;color:#0f172a;font-size:12px }
+.dv-tbl.freeze-5 tbody td:nth-child(2), .dv-tbl.freeze-4 tbody td:nth-child(2), .dv-tbl.freeze-6 tbody td:nth-child(2){ left:140px;background:#fff }
+.dv-tbl.freeze-5 tbody td:nth-child(3), .dv-tbl.freeze-4 tbody td:nth-child(3), .dv-tbl.freeze-6 tbody td:nth-child(3){ left:240px;background:#fff }
+.dv-tbl.freeze-5 tbody td:nth-child(4), .dv-tbl.freeze-4 tbody td:nth-child(4), .dv-tbl.freeze-6 tbody td:nth-child(4){ left:350px;background:#fff }
 .dv-tbl.freeze-5 tbody td:nth-child(5), .dv-tbl.freeze-6 tbody td:nth-child(5){ left:510px;background:#fff }
 .dv-tbl.freeze-6 tbody td:nth-child(6){ left:650px;background:#fff }
-.dv-tbl.freeze-5 tfoot td:nth-child(1), .dv-tbl.freeze-6 tfoot td:nth-child(1){ left:0;    z-index:21;background:#f1f5f9 }
-.dv-tbl.freeze-5 tfoot td:nth-child(2), .dv-tbl.freeze-6 tfoot td:nth-child(2){ left:140px;z-index:20;background:#f1f5f9 }
-.dv-tbl.freeze-5 tfoot td:nth-child(3), .dv-tbl.freeze-6 tfoot td:nth-child(3){ left:240px;z-index:19;background:#f1f5f9 }
-.dv-tbl.freeze-5 tfoot td:nth-child(4), .dv-tbl.freeze-6 tfoot td:nth-child(4){ left:350px;z-index:18;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(1), .dv-tbl.freeze-4 tfoot td:nth-child(1), .dv-tbl.freeze-6 tfoot td:nth-child(1){ left:0;    z-index:21;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(2), .dv-tbl.freeze-4 tfoot td:nth-child(2), .dv-tbl.freeze-6 tfoot td:nth-child(2){ left:140px;z-index:20;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(3), .dv-tbl.freeze-4 tfoot td:nth-child(3), .dv-tbl.freeze-6 tfoot td:nth-child(3){ left:240px;z-index:19;background:#f1f5f9 }
+.dv-tbl.freeze-5 tfoot td:nth-child(4), .dv-tbl.freeze-4 tfoot td:nth-child(4), .dv-tbl.freeze-6 tfoot td:nth-child(4){ left:350px;z-index:18;background:#f1f5f9 }
 .dv-tbl.freeze-5 tfoot td:nth-child(5), .dv-tbl.freeze-6 tfoot td:nth-child(5){ left:510px;z-index:17;background:#f1f5f9 }
+/* .freeze-4 (Unbilled Revenue / Unposted Cost drill-downs): fixed widths so the
+   sticky left offsets line up exactly and frozen columns never overlap */
+.dv-tbl.freeze-4 thead th:nth-child(-n+4), .dv-tbl.freeze-4 tbody td:nth-child(-n+4), .dv-tbl.freeze-4 tfoot td:nth-child(-n+4){box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dv-tbl.freeze-4 thead th:nth-child(1), .dv-tbl.freeze-4 tbody td:nth-child(1), .dv-tbl.freeze-4 tfoot td:nth-child(1){left:0px;width:120px;min-width:120px;max-width:120px}
+.dv-tbl.freeze-4 thead th:nth-child(2), .dv-tbl.freeze-4 tbody td:nth-child(2), .dv-tbl.freeze-4 tfoot td:nth-child(2){left:120px;width:110px;min-width:110px;max-width:110px}
+.dv-tbl.freeze-4 thead th:nth-child(3), .dv-tbl.freeze-4 tbody td:nth-child(3), .dv-tbl.freeze-4 tfoot td:nth-child(3){left:230px;width:200px;min-width:200px;max-width:200px}
+.dv-tbl.freeze-4 thead th:nth-child(4), .dv-tbl.freeze-4 tbody td:nth-child(4), .dv-tbl.freeze-4 tfoot td:nth-child(4){left:430px;width:130px;min-width:130px;max-width:130px;box-shadow:2px 0 0 #e2e8f0}
 .dv-tbl.freeze-6 tfoot td:nth-child(6){ left:650px;z-index:16;background:#f1f5f9 }
-.dv-tbl.freeze-5 tbody tr:hover td:nth-child(1), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(1),
-.dv-tbl.freeze-5 tbody tr:hover td:nth-child(2), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(2),
-.dv-tbl.freeze-5 tbody tr:hover td:nth-child(3), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(3),
-.dv-tbl.freeze-5 tbody tr:hover td:nth-child(4), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(4),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(1), .dv-tbl.freeze-4 tbody tr:hover td:nth-child(1), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(1),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(2), .dv-tbl.freeze-4 tbody tr:hover td:nth-child(2), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(2),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(3), .dv-tbl.freeze-4 tbody tr:hover td:nth-child(3), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(3),
+.dv-tbl.freeze-5 tbody tr:hover td:nth-child(4), .dv-tbl.freeze-4 tbody tr:hover td:nth-child(4), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(4),
 .dv-tbl.freeze-5 tbody tr:hover td:nth-child(5), .dv-tbl.freeze-6 tbody tr:hover td:nth-child(5),
 .dv-tbl.freeze-6 tbody tr:hover td:nth-child(6){ background:#eff6ff }
 
@@ -3897,27 +3904,27 @@ function getColumnsFromRecords(records, pageId, view) {
 // and "Estimated Profit%" (and the Actual Profit pair) both camelCase to
 // the SAME key in the push script and silently collide - flagged
 // separately, not fixed here since it doesn't affect Unbilled/Unposted.
-// First 6 columns are frozen (see .dv-tbl nth-child CSS) - order matches
-// what was requested: Job No., LOB, ETD/ETA New, Charge, Unbilled Revenue,
-// Unposted Cost, then everything else scrolls normally
+// First 4 columns are frozen (.freeze-4, see .dv-tbl nth-child CSS): Job No.,
+// ETD/ETA New, Charge, Unbilled Revenue / Unposted Cost. LOB comes right after,
+// unfrozen. Money columns use the push script's real field names (...Usd).
 const DV_COLS_WIP_REVENUE = [
   { key:'shipmentId',        label:'Job No.'                             },
-  { key:'lob',                label:'LOB'                                 },
   { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'charge',            label:'Charge'                              },
   { key:'unbilledRevenue',   label:'Unbilled Revenue',  num:true         },
+  { key:'lob',                label:'LOB'                                 },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'jobOwner',          label:'Job Owner'                           },
   { key:'operationLockDate', label:'Operation Lock Date', date:true      },
-  { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
-  { key:'bookedRevenue',     label:'Booked Revenue',    num:true         },
-  { key:'actualRevenue',     label:'Actual Revenue',    num:true         },
-  { key:'estimatedCost',     label:'Estimated Cost',    num:true         },
-  { key:'bookedCost',        label:'Booked Cost',       num:true         },
-  { key:'actualCost',        label:'Actual Cost',       num:true         },
-  { key:'estimatedProfit',   label:'Estimated Profit',  num:true         },
-  { key:'actualProfit',      label:'Actual Profit',     num:true         },
+  { key:'estimatedRevenueUsd',  label:'Estimated Revenue', num:true         },
+  { key:'bookedRevenueUsd',     label:'Booked Revenue',    num:true         },
+  { key:'actualRevenueUsd',     label:'Actual Revenue',    num:true         },
+  { key:'estimatedCostUsd',     label:'Estimated Cost',    num:true         },
+  { key:'bookedCostUsd',        label:'Booked Cost',       num:true         },
+  { key:'actualCostUsd',        label:'Actual Cost',       num:true         },
+  { key:'estimatedProfitUsd',   label:'Estimated Profit',  num:true         },
+  { key:'actualProfitUsd',      label:'Actual Profit',     num:true         },
   { key:'financialLockDate', label:'Financial Lock Date', date:true      },
   { key:'receivableFrom',    label:'Receivable From'                     },
   { key:'payableTo',         label:'Payable To'                          },
@@ -3925,22 +3932,22 @@ const DV_COLS_WIP_REVENUE = [
 
 const DV_COLS_WIP_COST = [
   { key:'shipmentId',        label:'Job No.'                             },
-  { key:'lob',                label:'LOB'                                 },
   { key:'etdEtaNew',         label:'ETD/ETA New',       date:true        },
   { key:'charge',            label:'Charge'                              },
   { key:'unpostedCost',      label:'Unposted Cost',     num:true         },
+  { key:'lob',                label:'LOB'                                 },
   { key:'jobDate',            label:'Job Date',         date:true         },
   { key:'organization',      label:'Organization'                        },
   { key:'jobOwner',          label:'Job Owner'                           },
   { key:'operationLockDate', label:'Operation Lock Date', date:true      },
-  { key:'estimatedCost',     label:'Estimated Cost',    num:true         },
-  { key:'bookedCost',        label:'Booked Cost',       num:true         },
-  { key:'actualCost',        label:'Actual Cost',       num:true         },
-  { key:'estimatedRevenue',  label:'Estimated Revenue', num:true         },
-  { key:'bookedRevenue',     label:'Booked Revenue',    num:true         },
-  { key:'actualRevenue',     label:'Actual Revenue',    num:true         },
-  { key:'estimatedProfit',   label:'Estimated Profit',  num:true         },
-  { key:'actualProfit',      label:'Actual Profit',     num:true         },
+  { key:'estimatedCostUsd',     label:'Estimated Cost',    num:true         },
+  { key:'bookedCostUsd',        label:'Booked Cost',       num:true         },
+  { key:'actualCostUsd',        label:'Actual Cost',       num:true         },
+  { key:'estimatedRevenueUsd',  label:'Estimated Revenue', num:true         },
+  { key:'bookedRevenueUsd',     label:'Booked Revenue',    num:true         },
+  { key:'actualRevenueUsd',     label:'Actual Revenue',    num:true         },
+  { key:'estimatedProfitUsd',   label:'Estimated Profit',  num:true         },
+  { key:'actualProfitUsd',      label:'Actual Profit',     num:true         },
   { key:'financialLockDate', label:'Financial Lock Date', date:true      },
   { key:'receivableFrom',    label:'Receivable From'                     },
   { key:'payableTo',         label:'Payable To'                          },
@@ -4778,7 +4785,7 @@ function formatDvCell(r, c) {
   if (c.num) {
     if (empty) return '<span style="color:#cbd5e1">—</span>';
     const n = Number(v);
-    const isProfit = c.key === 'estimatedProfit' || c.key === 'actualProfit' ||
+    const isProfit = c.key === 'estimatedProfit' || c.key === 'actualProfit' || c.key === 'estimatedProfitUsd' || c.key === 'actualProfitUsd' ||
                      c.key === 'provisionalProfit' || c.key === 'unbilledRevenue' ||
                      c.key === 'unpostedCost';
     const color = isProfit ? (n >= 0 ? '#16a34a' : '#dc2626') : '#1d4ed8';
@@ -4851,7 +4858,10 @@ function openDrill(records, title, sub, colSet) {
     // still a visible column, just no longer pinned. Back to 5 frozen
     // fields (Job No., LOB, ETD/ETA New, Charge, Unbilled Revenue/Unposted
     // Cost) for every page, freeze-6 unused again
-    dvTableEl.classList.add('freeze-5');
+    // Unbilled Revenue / Unposted Cost drill-downs freeze 4 (no LOB); every other drill-down keeps 5
+    const isWipCols = dvCols === DV_COLS_WIP_REVENUE || dvCols === DV_COLS_WIP_COST;
+    dvTableEl.classList.toggle('freeze-4', isWipCols);
+    dvTableEl.classList.toggle('freeze-5', !isWipCols);
     dvTableEl.classList.remove('freeze-6');
   }
 
