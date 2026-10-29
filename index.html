@@ -7660,6 +7660,20 @@ function renderOrgChart() {
 </div>
 
 
+<script>
+(function () {
+  // Hub's Recent Dashboards widget, loaded from whichever Hub origin launched this
+  // session (production, or a staging/preview deployment). Falls back to production
+  // for a direct, non-SSO login; the widget itself stays inactive without a Hub token.
+  var hubOrigin = 'https://systems.sarlogisolutions.com';
+  try { hubOrigin = sessionStorage.getItem('sar_hub_origin') || hubOrigin; } catch (e) {}
+  var s = document.createElement('script');
+  s.src = hubOrigin + '/widget.js';
+  s.setAttribute('data-hub-origin', hubOrigin);
+  document.body.appendChild(s);
+})();
+</script>
+
 </body>
 </html>
 
