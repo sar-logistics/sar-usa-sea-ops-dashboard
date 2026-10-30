@@ -1401,8 +1401,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-open-jobs">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('open-jobs')"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('open-jobs')"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('open-jobs', this)"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -1486,8 +1485,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-total-jobs">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('total-jobs')"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('total-jobs')"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('total-jobs', this)"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -1592,8 +1590,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-unbilled-rev">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('unbilled-rev')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('unbilled-rev')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('unbilled-rev', this)" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
             <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
               <span class="tgl-switch">
                 <input type="checkbox" id="ub-viewmode-chk" onchange="toggleUbViewMode(this)">
@@ -1704,8 +1701,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div style="display:flex;align-items:center;gap:6px">
             <div class="sec-ct" id="sc-unposted-cost">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
-            <button class="ec-btn" onclick="expandAll('unposted-cost')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
-            <button class="ec-btn" onclick="collapseAll('unposted-cost')" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All</button>
+            <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('unposted-cost', this)" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
             <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
               <span class="tgl-switch">
                 <input type="checkbox" id="uc-viewmode-chk" onchange="toggleUcViewMode(this)">
@@ -4586,6 +4582,21 @@ function dvColIds(recs, colKeys, colKeyFn) {
 }
 
 // ── EXPAND / COLLAPSE ALL ─────────────────────────────────────
+// Combines Expand All / Collapse All into one toggle button - tracks its
+// own state via a data attribute on the button element itself
+function toggleExpandCollapse(pageId, btnEl) {
+  const isExpanded = btnEl.dataset.state === 'expanded';
+  if (isExpanded) {
+    collapseAll(pageId);
+    btnEl.dataset.state = 'collapsed';
+    btnEl.innerHTML = '<i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All';
+  } else {
+    expandAll(pageId);
+    btnEl.dataset.state = 'expanded';
+    btnEl.innerHTML = '<i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All';
+  }
+}
+
 function expandAll(pageId) {
   const tableId = pageId === 'job-unlinked' ? 'tbl-unlinked' : 'tbl-' + pageId;
   const tbl = document.getElementById(tableId);
