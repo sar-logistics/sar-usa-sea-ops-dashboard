@@ -120,6 +120,10 @@ export default async function handler(req, res) {
         });
       }
       const result = await col.bulkWrite(ops, { ordered: false });
+      // Upserts keep each document's original _id, so record the push time separately
+      // (read by api/last-updated.js for the SAR Systems Hub's dashboard card).
+      await db.collection('_meta').updateOne(
+        { _id: 'lastPush_' + colName }, { $set: { updatedAt: new Date() } }, { upsert: true });
       cache = { data: null, builtAt: null };
       return res.status(200).json({ upserted: result.upsertedCount, modified: result.modifiedCount, direction });
     }
