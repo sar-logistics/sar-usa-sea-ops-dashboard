@@ -25,8 +25,16 @@ async function buildCache(db) {
   const jobDocs    = await db.collection('usa_ops_jobs').find({}).toArray();
   const userDocs   = await db.collection('users').find({}).toArray();
   const etdEtaDocs = await db.collection('usa_ops_etdeta').find({}).toArray();
-  console.log(`[USA-OPS] Total docs: ${jobDocs.length}, users: ${userDocs.length}, etdEta: ${etdEtaDocs.length}`);
-  cache = { data: jobDocs, users: userDocs, etdEta: etdEtaDocs, builtAt: new Date().toISOString() };
+  const opsMappingDocs = await db.collection('usa_ops_ops_mapping').find({}).toArray();
+  // Pushes upsert in place, so each one stamps _meta.lastPush_<collection>;
+  // the newest stamp is when data was last pushed
+  const stamps = await db.collection('_meta')
+    .find({ _id: { $in: ['lastPush_usa_ops_jobs', 'lastPush_usa_ops_etdeta'] } }).toArray();
+  const pushTimes = stamps.map(d => new Date(d.updatedAt).getTime()).filter(t => !isNaN(t));
+  console.log(`[USA-OPS] Total docs: ${jobDocs.length}, users: ${userDocs.length}, etdEta: ${etdEtaDocs.length}, opsMapping: ${opsMappingDocs.length}`);
+  cache = { data: jobDocs, users: userDocs, etdEta: etdEtaDocs, opsMapping: opsMappingDocs,
+            lastSyncAt: pushTimes.length ? new Date(Math.max(...pushTimes)).toISOString() : null,
+            builtAt: new Date().toISOString() };
   return cache;
 }
 
@@ -45,7 +53,7 @@ export default async function handler(req, res) {
     if (action === 'wipe') {
       const c  = await getClient();
       const db = c.db(DB);
-      const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : null;
+      const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : direction === 'OpsMapping' ? 'usa_ops_ops_mapping' : null;
       if (!colName) return res.status(400).json({ error: 'Invalid direction' });
       const result = await db.collection(colName).deleteMany({});
       cache = { data: null, builtAt: null };
@@ -56,6 +64,12 @@ export default async function handler(req, res) {
       if (!records || !records.length) return res.status(400).json({ error: 'No records' });
       const c  = await getClient();
       const db = c.db(DB);
+      if (direction === 'OpsMapping') {
+        // Ops Mapping tab (Job Owner -> Reporting To): wiped first, then inserted as-is
+        const result = await db.collection('usa_ops_ops_mapping').insertMany(records, { ordered: false });
+        cache = { data: null, builtAt: null };
+        return res.status(200).json({ inserted: result.insertedCount, direction });
+      }
       const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : null;
       if (!colName) return res.status(400).json({ error: 'Invalid direction' });
       // Upsert on a natural key instead of insertMany: a re-run or retry of the
@@ -141,7 +155,7 @@ export default async function handler(req, res) {
       }
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
-      return res.status(200).json({ records: cache.data, users: cache.users || [], etdEta: cache.etdEta || [], builtAt: cache.builtAt });
+      return res.status(200).json({ records: cache.data, users: cache.users || [], etdEta: cache.etdEta || [], opsMapping: cache.opsMapping || [], lastSyncAt: cache.lastSyncAt || null, builtAt: cache.builtAt });
     } catch (e) {
       console.error(e);
       return res.status(500).json({ error: e.message });

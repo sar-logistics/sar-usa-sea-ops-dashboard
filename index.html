@@ -2044,18 +2044,20 @@ document.addEventListener('click', e => {
 
 // ── LAST UPDATED TIMESTAMP ───────────────────────────────────
 let lastDataUpdate = null;
+// When the data was last pushed to the database (lastSyncAt from the API),
+// not when this browser loaded it
+let dataSyncAt = null;     // ISO time of the last push, from /api/mongo-batch
 function markDataUpdated() {
-  lastDataUpdate = Date.now();
+  lastDataUpdate = dataSyncAt ? Date.parse(dataSyncAt) : null;
   renderLastUpdated();
 }
 function renderLastUpdated() {
-  const mins = lastDataUpdate ? Math.floor((Date.now() - lastDataUpdate) / 60000) : null;
+  // exact date and time of the last push, e.g. "Updated 29 Oct 2026, 1:47 PM"
   let text = '—';
-  if (mins !== null) {
-    if (mins < 1) text = 'Updated just now';
-    else if (mins === 1) text = 'Updated 1 min ago';
-    else if (mins < 60) text = 'Updated ' + mins + ' min ago';
-    else text = 'Updated ' + Math.floor(mins / 60) + 'h ago';
+  if (lastDataUpdate) {
+    const d = new Date(lastDataUpdate);
+    text = 'Updated ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ', '
+         + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   }
   const el = document.getElementById('tb-last-updated');
   if (el) el.textContent = text;
@@ -2083,6 +2085,8 @@ let currentRole = null;
 let allSRR = [];
 let rawSRR = [];
 let rawWIP  = [];
+let opsMapping = [];  // Ops Mapping tab: Job Owner -> Reporting To (with emails), for data access
+let rlsOwners = null; // Set of visible job-owner keys for the signed-in user; null = sees all jobs
 
 // ── LOB Navigation — 3 State System ──────────────────────────────────────
 // State 1: LOB full screen
@@ -2951,7 +2955,7 @@ function syncUniversalFilters(oldSuffix, newSuffix) {
   if (oldQ && newQ) newQ.value = oldQ.value;
 
   // Add Filters panel: Zone/Branch/Owner multi-selects
-  ['branch-', 'owner-'].forEach(prefix => {
+  ['branch-', 'owner-', 'zone-'].forEach(prefix => {
     const oldKey = prefix + oldSuffix, newKey = prefix + newSuffix;
     if (msState[oldKey] !== undefined && document.getElementById('msw-' + newKey)) {
       msState[newKey] = msState[oldKey] instanceof Set ? new Set(msState[oldKey]) : msState[oldKey];
@@ -3304,9 +3308,9 @@ function fmtDate(d) {
 function initFilters(pageId) {
   const now = new Date();
 
-  // Default range: Jan 2026 -> current month, per explicit request
-  const fromYear = 2026, fromMonth = 0;
-  const toYear   = 2026, toMonth   = now.getMonth();
+  // Default range: January of the current year -> current month
+  const fromYear = now.getFullYear(), fromMonth = 0;
+  const toYear   = now.getFullYear(), toMonth   = now.getMonth();
 
   const fromId = 'mp-from-' + pageId;
   const toId   = 'mp-to-' + pageId;
@@ -3536,12 +3540,49 @@ function toggleRows(key, event) {
 }
 
 function renderPage(pageId) {
+  // Every redraw rebuilds the table, so remember which rows were open and
+  // reopen them afterwards (view switch, filters, refresh, coming back)
+  const openRows = captureOpenRows(pageId);
   // ── USA Ops — 8 pages only ──────────────────────────
   if (pageId === 'summary')            renderSummary();
   if (pageId === 'total-jobs')         renderTotalJobs();
   if (pageId === 'open-jobs')          renderOpenJobs();
   if (pageId === 'revenue-not-billed' || pageId === 'unbilled-rev') renderUnbilledRev();
   if (pageId === 'cost-not-posted'    || pageId === 'unposted-cost') renderUnpostedCost();
+  restoreOpenRows(pageId, openRows);
+}
+
+// Report table body for a page id (sidebar ids map onto the page's div id)
+function reportTbody(pageId) {
+  const divId = { 'revenue-not-billed': 'unbilled-rev', 'cost-not-posted': 'unposted-cost' }[pageId] || pageId;
+  return document.getElementById('tbody-' + divId);
+}
+// A location row's name, without the avatar initials and the chevron
+function reportRowLabel(tr) {
+  const cell = tr.querySelector('td');
+  if (!cell) return '';
+  const clone = cell.cloneNode(true);
+  clone.querySelectorAll('.av, .rc').forEach(e => e.remove());
+  return clone.textContent.trim();
+}
+function captureOpenRows(pageId) {
+  const tbody = reportTbody(pageId);
+  if (!tbody || !tbody.querySelector('.br-row')) return null;
+  const gt = tbody.querySelector('.gt-block .rc');
+  return {
+    open: new Set([...tbody.querySelectorAll('.br-row')].filter(tr => tr.querySelector('.rc.open')).map(reportRowLabel)),
+    gtClosed: !!(gt && !gt.classList.contains('open')),
+  };
+}
+function restoreOpenRows(pageId, state) {
+  const tbody = reportTbody(pageId);
+  if (!state || !tbody) return;
+  tbody.querySelectorAll('.br-row').forEach(tr => {
+    const rc = tr.querySelector('.rc');
+    if (rc && !rc.classList.contains('open') && state.open.has(reportRowLabel(tr))) toggleRows(rc.id.replace('rc-', ''));
+  });
+  const gt = tbody.querySelector('.gt-block .rc');
+  if (state.gtClosed && gt && gt.classList.contains('open')) toggleRows(gt.id.replace('rc-', ''));
 }
 
 // ── RENDER: Total Jobs Created ────────────────────────────────
@@ -3551,9 +3592,10 @@ function renderTotalJobs() {
   // Hide/show scorecards and grand total based on view
   const _kpiRow = document.querySelector('#page-total-jobs .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
-  const filtered = applyAdditionalFilters(applyDropdownFilters(filterByDate(allSRR, pageId), pageId), pageId);
+  const inPeriod = filterByDate(allSRR, pageId);
+  const filtered = applyAdditionalFilters(applyDropdownFilters(inPeriod, pageId), pageId);
 
-  populateFilters(pageId, filtered);
+  populateFilters(pageId, inPeriod);
 
   const totalCount = filtered.length;
   const sc = document.getElementById('sc-total-jobs');
@@ -3659,7 +3701,7 @@ function renderOpenJobs() {
   const flaggedCount = flaggedDD.length;
   const pct = totalJobs > 0 ? ((flaggedCount / totalJobs) * 100).toFixed(1) : '0.0';
 
-  populateFilters(pageId, filteredDD);
+  populateFilters(pageId, filtered);
 
   // Scorecards — clickable
   const kT = document.getElementById('kv-oj-total');
@@ -4009,6 +4051,7 @@ function filterEtdEtaByDate(records, pageId) {
   const { from, to } = getDateRange(pageId);
   return (records || []).filter(r => {
     if (!etdEtaMatchesDirection(r)) return false;
+    if (rlsOwners && !rlsOwners.has(ownerKey(r.jobOwner))) return false;
     const d = r.etdEtaNew ? new Date(r.etdEtaNew) : null;
     return d && !isNaN(d) && d >= from && d <= to;
   });
@@ -4045,8 +4088,9 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
   const _kpiRow = document.querySelector('#page-' + pageId + ' .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
 
-  let filteredDD = applyAdditionalFilters(applyDropdownFilters(filterEtdEtaByDate(rawWIP, pageId), pageId), pageId);
-  populateFilters(pageId, filteredDD);
+  const inPeriod = filterEtdEtaByDate(rawWIP, pageId);
+  let filteredDD = applyAdditionalFilters(applyDropdownFilters(inPeriod, pageId), pageId);
+  populateFilters(pageId, inPeriod);
   const shipments = groupEtdEtaByShipment(filteredDD, sumField);
   // Require Ops Lock (filter toggle): only jobs that have an Operation Lock Date. Off by default.
   const isOpsLocked = sh => sh.operationLockDate && String(sh.operationLockDate).trim() !== '';
@@ -4481,9 +4525,12 @@ async function refreshData(pageId) {
     // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
     // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
     rawWIP = data.etdEta || [];
+    opsMapping = data.opsMapping || [];
+    dataSyncAt = data.lastSyncAt || dataSyncAt;
     applyRLS();
-    initFilters(pageId);
+    // keep the dates/filters the user picked - only the data is reloaded
     renderPage(pageId);
+    markDataUpdated();
   } catch(e) { console.error('Refresh error:', e); }
   finally {
     if (btn) btn.innerHTML = '<i class="ti ti-refresh" style="font-size:13px"></i> Refresh';
@@ -5289,7 +5336,7 @@ async function loadData() {
           const s2 = r2.headers.get('X-Cache');
           if (s2 === 'HIT') {
             // Full cache ready — update data, re-render only the currently visible page
-            rawSRR = d2.records || []; rawJPA = [];
+            rawSRR = d2.records || []; rawJPA = []; opsMapping = d2.opsMapping || opsMapping; dataSyncAt = d2.lastSyncAt || dataSyncAt;
             allSRR = rawSRR.filter(r => (!currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r)); allJPA = [...rawJPA];
             applyRLS();
             try { renderPage(getActivePage()); } catch(e) {}
@@ -5307,7 +5354,7 @@ async function loadData() {
               });
               if (!r3.ok) return;
               const d3 = await r3.json();
-              rawSRR = d3.records || []; rawJPA = [];
+              rawSRR = d3.records || []; rawJPA = []; opsMapping = d3.opsMapping || opsMapping; dataSyncAt = d3.lastSyncAt || dataSyncAt;
               allSRR = rawSRR.filter(r => (!currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r)); allJPA = [...rawJPA];
               applyRLS();
               try { renderPage(getActivePage()); } catch(e) {}
@@ -5329,6 +5376,8 @@ async function loadData() {
     // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
     // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
     rawWIP = data.etdEta || [];
+    opsMapping = data.opsMapping || [];
+    dataSyncAt = data.lastSyncAt || dataSyncAt;
     console.log('[loadData] ETD/ETA records:', rawWIP.length);
     applyRLS();
     setTimeout(updateMainMetricsBadges, 500);
@@ -5650,18 +5699,15 @@ function extendSession() {
 
 // ── RLS ──────────────────────────────────────────────────────
 function applyRLS() {
-  const isAdmin      = ['Admin','Co-Admin','admin','co-admin'].includes(currentRole);
-  const isHR         = currentRole === 'HR';
-  const isOpsHead    = currentRole === 'Ops Head';
-  const isManager    = currentRole === 'Manager';
-  const isTeamLeader = currentRole === 'Team Leader';
+  const isAdmin = ADMIN_ROLES.includes(currentRole);
+  const canSeeTeamPages = !NO_TEAM_PAGES_ROLES.includes(currentRole);
 
-  // Nav visibility — unchanged, still based on the role label itself (a
-  // permissions concern, separate from data scoping below)
+  // Nav visibility, by role: Admin Panel is Admin-only; Usage Analytics and
+  // Teams are hidden from Job Owner / Doc User; Tickets is open to every role
   document.getElementById('sys-admin').style.display  = isAdmin ? 'flex' : 'none';
-  document.getElementById('sys-teams').style.display  = (isAdmin || isHR || isOpsHead) ? 'flex' : 'none';
-  document.getElementById('sys-usage').style.display  = (isAdmin || isHR || isOpsHead || isManager || isTeamLeader) ? 'flex' : 'none';
-  document.getElementById('sys-feedback').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('sys-teams').style.display  = canSeeTeamPages ? 'flex' : 'none';
+  document.getElementById('sys-usage').style.display  = canSeeTeamPages ? 'flex' : 'none';
+  document.getElementById('sys-feedback').style.display = 'flex';
 
   // Data scoping — Admin is the only bypass. Every other role is scoped
   // purely by name + reporting-to position in allUsers, ignoring the
@@ -5674,36 +5720,64 @@ function applyRLS() {
   // actually shows the page)
   const dirMatches = r => !currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase();
 
-  if (isAdmin) {
+  // Admin, Strategy, Management, HR, Finance and Ops Head see every job.
+  // Every other role sees its own jobs plus everyone reporting to it, from
+  // the Ops Mapping tab (and Reporting Manager in the Admin Panel).
+  if (SEE_ALL_DATA_ROLES.includes(currentRole)) {
+    rlsOwners = null;
     allSRR = rawSRR.filter(r => dirMatches(r) && matchesCurrentLob(r));
     allJPA = [...rawJPA];
     return;
   }
 
   const email = (currentUser.email || '').toLowerCase().trim();
-  const visibleJobOwners = getVisibleJobOwners(email);
+  rlsOwners = getVisibleJobOwners(email);
 
-  allSRR = rawSRR.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()) && dirMatches(r) && matchesCurrentLob(r));
-  allJPA = rawJPA.filter(r => visibleJobOwners.has((r.jobOwner || '').toLowerCase().trim()));
+  allSRR = rawSRR.filter(r => rlsOwners.has(ownerKey(r.jobOwner)) && dirMatches(r) && matchesCurrentLob(r));
+  allJPA = rawJPA.filter(r => rlsOwners.has(ownerKey(r.jobOwner)));
+}
+
+// Job-owner names are compared without a " | CODE" suffix, case and extra spaces
+function ownerKey(name) {
+  return String(name || '').split('|')[0].replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 function getVisibleJobOwners(email) {
-  // Returns a Set of visible jobOwner names (lowercased) - this person's own
-  // name plus anyone reporting up to them, recursively, walking the real
+  // Returns a Set of visible job-owner keys (ownerKey) - this person's own
+  // name plus anyone reporting up to them, recursively: first from the Ops
+  // Mapping tab (Job Owner / Reporting To emails), then from the real
   // reportingManager field stored on each allUsers document.
-  if (!allUsers || !allUsers.length) return new Set();
+  const visible = new Set();
+  const emailKey = e => String(e || '').toLowerCase().trim();
+
+  // Ops Mapping: rows where I am the Job Owner, or the Reporting To; repeat
+  // for any reportee who has an email of their own (their team rolls up too)
+  const seenManagers = new Set();
+  (function walk(managerEmail, depth) {
+    if (!managerEmail || depth > 5 || seenManagers.has(managerEmail)) return;
+    seenManagers.add(managerEmail);
+    (opsMapping || []).forEach(m => {
+      if (emailKey(m.jobOwnerEmail) === managerEmail) visible.add(ownerKey(m.jobOwner));
+      if (emailKey(m.reportingToEmail) === managerEmail) {
+        visible.add(ownerKey(m.reportingTo));
+        visible.add(ownerKey(m.jobOwner));
+        walk(emailKey(m.jobOwnerEmail), depth + 1);
+      }
+    });
+  })(email, 0);
+
+  if (!allUsers || !allUsers.length) { visible.delete(''); return visible; }
 
   const me = allUsers.find(u => (u.email || '').toLowerCase().trim() === email);
-  const visible = new Set();
 
-  const myOwnName = (me && (me.jobOwnerName || me.name) || currentUser.name || '').toLowerCase().trim();
+  const myOwnName = ownerKey(me && (me.jobOwnerName || me.name) || currentUser.name || '');
   if (myOwnName) visible.add(myOwnName);
 
   function collectReports(managerEmail, depth) {
     if (depth > 5) return; // safety limit
     allUsers.forEach(u => {
       if ((u.reportingManager || '').toLowerCase().trim() === managerEmail) {
-        const name = (u.jobOwnerName || u.name || '').toLowerCase().trim();
+        const name = ownerKey(u.jobOwnerName || u.name || '');
         if (name && !visible.has(name)) {
           visible.add(name);
           const theirEmail = (u.email || '').toLowerCase().trim();
@@ -5714,6 +5788,7 @@ function getVisibleJobOwners(email) {
   }
 
   collectReports(email, 0);
+  visible.delete('');
   return visible;
 }
 
@@ -5769,18 +5844,13 @@ async function loadUsageAnalytics() {
     });
 
     // RLS: determine which users this person can see
-    const isAdmin      = ['Admin','Co-Admin','admin','co-admin'].includes(currentRole);
-    const isHR         = currentRole === 'HR';
-    const isOpsHead    = currentRole === 'Ops Head';
-    const isManager    = currentRole === 'Manager';
-    const isTeamLeader = currentRole === 'Team Leader';
     const myEmail      = (currentUser.email || '').toLowerCase().trim();
 
     let visibleUsers = users;
 
-    if (!isAdmin && !isHR && !isOpsHead) {
-      // Manager / Team Leader: only see their direct reportees
-      if (isManager || isTeamLeader) {
+    if (!USAGE_ALL_USERS_ROLES.includes(currentRole)) {
+      // Zonal Manager / Ops Team Leader: only see their direct reportees
+      if (USAGE_REPORTEES_ROLES.includes(currentRole)) {
         visibleUsers = users.filter(u => {
           const mgr = (u.reportingManager || '').toLowerCase().trim();
           return mgr === myEmail;
@@ -5938,28 +6008,43 @@ function exportUsageToExcel() {
 }
 
 // ── ADMIN PANEL ──────────────────────────────────────────────
-const ROLES = ['Admin','Co-Admin','HR','Ops Head','Manager','Team Leader','Job Owner','Docs','CS'];
+const ROLES = ['Admin','Strategy','Management','HR','Finance','Zonal Manager','Ops Head','Ops Team Leader','Job Owner','Doc User'];
+const ADMIN_ROLES = ['Admin','Co-Admin','admin','co-admin'];   // Co-Admin kept for older user records
+const NO_TEAM_PAGES_ROLES = ['Job Owner','Doc User','Docs','CS']; // no Usage Analytics / Teams
+const USAGE_ALL_USERS_ROLES = [...ADMIN_ROLES,'Strategy','Management','HR','Finance','Ops Head'];
+const USAGE_REPORTEES_ROLES = ['Zonal Manager','Ops Team Leader','Manager','Team Leader'];
+const SEE_ALL_DATA_ROLES = [...ADMIN_ROLES,'Strategy','Management','HR','Finance','Ops Head'];
 const ROLE_COLORS = {
-  'Admin':        { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
-  'Co-Admin':     { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
-  'HR':           { bg:'#fdf2ff', color:'#9333ea', border:'#e9d5ff' },
-  'Ops Head':     { bg:'#ffe4e6', color:'#e11d48', border:'#fda4af' },
-  'Manager':      { bg:'#e0f2fe', color:'#0369a1', border:'#7dd3fc' },
-  'Team Leader':  { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7' },
-  'Job Owner':    { bg:'#fef3c7', color:'#b45309', border:'#fcd34d' },
+  'Admin':           { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
+  'Co-Admin':        { bg:'#f3f0ff', color:'#7c3aed', border:'#c4b5fd' },
+  'Strategy':        { bg:'#eef2ff', color:'#4338ca', border:'#a5b4fc' },
+  'Management':      { bg:'#f0f9ff', color:'#075985', border:'#7dd3fc' },
+  'HR':              { bg:'#fdf2ff', color:'#9333ea', border:'#e9d5ff' },
+  'Finance':         { bg:'#ecfdf5', color:'#047857', border:'#6ee7b7' },
+  'Zonal Manager':   { bg:'#e0f2fe', color:'#0369a1', border:'#7dd3fc' },
+  'Ops Head':        { bg:'#ffe4e6', color:'#e11d48', border:'#fda4af' },
+  'Ops Team Leader': { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7' },
+  'Job Owner':       { bg:'#fef3c7', color:'#b45309', border:'#fcd34d' },
+  'Doc User':        { bg:'#fff7ed', color:'#c2410c', border:'#fdba74' },
 };
 
 const ROLE_GROUPS = [
-  { label: 'ADMINISTRATION',     roles: ['Admin','Co-Admin','HR','admin','co-admin','hr'] },
+  { label: 'ADMINISTRATION',     roles: ['Admin','Co-Admin','admin','co-admin'] },
+  { label: 'STRATEGY',           roles: ['Strategy','strategy'] },
+  { label: 'MANAGEMENT',         roles: ['Management','management'] },
+  { label: 'HR',                 roles: ['HR','hr'] },
+  { label: 'FINANCE',            roles: ['Finance','finance'] },
+  { label: 'ZONAL MANAGER',      roles: ['Zonal Manager','zonal manager'] },
   { label: 'OPS HEAD',           roles: ['Ops Head','ops head'] },
-  { label: 'MANAGER',            roles: ['Manager','manager'] },
-  { label: 'TEAM LEADER',        roles: ['Team Leader','team leader'] },
+  { label: 'OPS TEAM LEADER',    roles: ['Ops Team Leader','ops team leader'] },
   { label: 'JOB OWNER',          roles: ['Job Owner','job owner'] },
-  { label: 'DOCS',               roles: ['Docs','docs'] },
-  { label: 'CS',                 roles: ['CS','cs'] },
+  { label: 'DOC USER',           roles: ['Doc User','doc user'] },
 ];
 
 async function loadAdminPanel() {
+  // Users come straight from the database here - the main data feed is
+  // cached for hours, so users added elsewhere would otherwise not show
+  await refreshAllUsers();
   const users = allUsers || [];
 
   const allZones    = [...new Set(rawSRR.map(r => r.zone).filter(Boolean))].sort();
@@ -6086,7 +6171,7 @@ function renderAddUserModal(users) {
   const existing = document.getElementById('addUserModal');
   if (existing) existing.remove();
 
-  const allRoles = [...ROLE_GROUPS.flatMap(g => g.roles), ...ROLES].filter((v,i,a)=>a.indexOf(v)===i);
+  const allRoles = ROLES;
   const modal = document.createElement('div');
   modal.id = 'addUserModal';
   modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:700;align-items:center;justify-content:center';
@@ -6221,16 +6306,20 @@ function renderEditUserModal(users) {
 }
 
 function openEditUser(email) {
+  if (!ADMIN_ROLES.includes(currentRole)) return;  // editing users is Admin-only
   const users = window._adminUsers || [];
   const u = users.find(u => u.email === email);
   if (!u) return;
+  // the edit window is built by the Admin Panel - build it here too, so the
+  // pencils on the Teams page work without opening the Admin Panel first
+  if (!document.getElementById('editUserModal')) renderEditUserModal(users);
 
   document.getElementById('editEmail').value = email;
   document.getElementById('editUserTitle').textContent = 'Edit — ' + (u.name || email);
 
   const selectStyle = `width:100%;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;color:#0f172a;outline:none;background:#f8fafc;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center`;
   const inputStyle  = `width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;color:#0f172a;outline:none;background:#f8fafc`;
-  const allRoles    = [...ROLE_GROUPS.flatMap(g => g.roles), ...ROLES].filter((v,i,a)=>a.indexOf(v)===i);
+  const allRoles    = ROLES.includes(u.role) || !u.role ? ROLES : [...ROLES, u.role];  // keep an older role selectable
 
   let f = `
     <div style="margin-bottom:18px">
@@ -6403,8 +6492,9 @@ function renderSummary() {
   if (!container) return;
 
   const { cols, label, view } = getColumns(pageId);
-  const filtered  = applyDropdownFilters(filterByDate(allSRR, pageId), pageId);
-  populateFilters(pageId, filtered);
+  const inPeriod  = filterByDate(allSRR, pageId);
+  const filtered  = applyDropdownFilters(inPeriod, pageId);
+  populateFilters(pageId, inPeriod);
 
   if (!cols.length) { container.innerHTML = '<div style="padding:40px;color:#94a3b8;text-align:center">No data for the selected period.</div>'; return; }
 
@@ -6968,7 +7058,7 @@ document.addEventListener('mousemove', e => {
 const CSV_TEMPLATE_HEADERS = ['Name','Email','Role','Phone','Reporting Manager Email','Status'];
 const CSV_REQUIRED = ['Name','Email','Role'];
 const VALID_ROLES_IMPORT = [
-  'Admin','Co-Admin','HR','Ops Head','Manager','Team Leader','Job Owner'
+  'Admin','Strategy','Management','HR','Finance','Zonal Manager','Ops Head','Ops Team Leader','Job Owner','Doc User'
 ];
 
 let _importRows = []; // parsed + validated rows
@@ -7323,42 +7413,17 @@ function _doRenderTeams() {
   if (!page) return;
   _orgZoom = 1;
   page.innerHTML = `
-    <div style="padding:24px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <div style="padding:14px 20px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.08em">👥 TEAMS</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <button onclick="renderTeams()" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;color:#0f172a;background:#fff;cursor:pointer">
-          ↺ Refresh
+        <button class="ec-btn" onclick="renderTeams()" title="Refresh" style="display:inline-flex;align-items:center;gap:5px">
+          <i class="ti ti-refresh" style="font-size:12px"></i> Refresh
         </button>
-
-        <!-- Zoom controls -->
-        <div style="display:flex;align-items:center;gap:0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff">
-          <button onclick="orgZoom(-1)" title="Zoom out"
-            style="border:none;background:none;width:34px;height:34px;font-size:16px;cursor:pointer;color:#475569;display:flex;align-items:center;justify-content:center;border-right:1px solid #e2e8f0;transition:background .1s"
-            onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">−</button>
-          <span id="orgZoomLabel" style="font-size:12px;font-weight:600;color:#334155;padding:0 12px;min-width:46px;text-align:center;cursor:pointer" onclick="orgZoomReset()" title="Click to reset to 100%">100%</span>
-          <button onclick="orgZoom(1)" title="Zoom in"
-            style="border:none;background:none;width:34px;height:34px;font-size:16px;cursor:pointer;color:#475569;display:flex;align-items:center;justify-content:center;border-left:1px solid #e2e8f0;transition:background .1s"
-            onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">+</button>
-        </div>
-        <button onclick="orgZoomReset()" title="Reset zoom"
-          style="border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px;font-size:12px;color:#64748b;background:#fff;cursor:pointer">
-          ⊡ Fit
-        </button>
-
-        <span style="font-size:12px;color:#94a3b8;margin-left:4px">Scroll to zoom · Reporting hierarchy is set via Admin Panel → Reporting Manager</span>
       </div>
-
-      <!-- Scrollable viewport -->
-      <div id="orgChartViewport" style="background:#f8fafc;border-radius:16px;overflow:auto;min-height:300px;cursor:grab;position:relative"
-        onwheel="orgWheelZoom(event)">
-        <!-- Inner scalable canvas -->
-        <div id="orgChartWrap" style="padding:40px;display:inline-block;transform-origin:top left;transition:transform .15s;min-width:100%"></div>
+      <div id="orgChartViewport" style="background:#f8fafc;border-radius:16px;overflow:auto;min-height:300px;position:relative">
+        <div id="orgChartWrap" style="padding:28px;display:inline-block;min-width:100%;box-sizing:border-box"></div>
       </div>
     </div>`;
-
-  // Mouse-wheel zoom
   renderOrgChart();
 }
 
@@ -7392,24 +7457,35 @@ function _applyOrgZoom() {
 }
 
 function renderOrgChart() {
-  const users = window._adminUsers || [];
+  const allPeople = window._adminUsers || [];
   const wrap  = document.getElementById('orgChartWrap');
   if (!wrap) return;
 
   const myEmail = currentUser ? currentUser.email : '';
   const RC = ROLE_COLORS;
+  const emailKey = e => String(e || '').toLowerCase().trim();
 
-  // LEFT: Admin / Co-Admin / HR — shown as standalone column
-  const adminUsers     = users.filter(u => ['Admin','Co-Admin','HR'].includes(u.role));
-  const hierarchyUsers = users.filter(u => !['Admin','Co-Admin','HR'].includes(u.role));
-  const hierarchyEmails = new Set(hierarchyUsers.map(u => (u.email || '').toLowerCase().trim()));
+  // Who this viewer sees: see-all roles get everyone; everyone else gets
+  // themselves plus everyone under them (Reporting Manager, all levels)
+  let users = allPeople;
+  if (!SEE_ALL_DATA_ROLES.includes(currentRole)) {
+    const keep = new Set([emailKey(myEmail)]);
+    let added = true;
+    while (added) {
+      added = false;
+      allPeople.forEach(u => {
+        const e = emailKey(u.email);
+        if (!keep.has(e) && keep.has(emailKey(u.reportingManager))) { keep.add(e); added = true; }
+      });
+    }
+    users = allPeople.filter(u => keep.has(emailKey(u.email)));
+  }
 
-  // Roots of hierarchy tree — normalise email comparison
-  const roots = hierarchyUsers.filter(u => {
-    const mgr = (u.reportingManager || '').toLowerCase().trim();
-    const self = (u.email || '').toLowerCase().trim();
-    return !mgr || mgr === self || !hierarchyEmails.has(mgr);
-  });
+  // Bottom: Administration (support functions); the chart is everyone else
+  const ADMIN_GROUP = ['Admin','Co-Admin','admin','co-admin','HR','Finance'];
+  const adminUsers     = users.filter(u => ADMIN_GROUP.includes(u.role));
+  const hierarchyUsers = users.filter(u => !ADMIN_GROUP.includes(u.role));
+  const hierarchyEmails = new Set(hierarchyUsers.map(u => emailKey(u.email)));
 
   // ── Node card (compact, matches screenshot) ──
   function nodeCard(u, isAdminPanel) {
@@ -7444,170 +7520,67 @@ function renderOrgChart() {
           <div style="font-size:11px;font-weight:600;color:${rc.color};margin-top:2px">${u.role || ''}</div>
           ${directReports.length ? `<div style="font-size:10px;color:#94a3b8;margin-top:1px">${directReports.length} direct report${directReports.length > 1 ? 's' : ''}</div>` : ''}
         </div>
-        <button onclick="openEditUser('${u.email.replace(/'/g,"\\'")}');event.stopPropagation();" 
+        ${ADMIN_ROLES.includes(currentRole) ? `<button onclick="openEditUser('${u.email.replace(/'/g,"\\'")}');event.stopPropagation();" 
           style="border:none;background:none;cursor:pointer;color:#cbd5e1;font-size:13px;padding:2px;flex-shrink:0;line-height:1"
-          title="Edit">✏️</button>
+          title="Edit">✏️</button>` : ''}
       </div>
     </div>`;
   }
 
-  // ── Role-aware tree renderer ──
-  // Layout rules:
-  //   Ops Head   → centred, single node, children (Managers) spread horizontally below
-  //   Manager    → horizontal row, children (Team Leaders) spread horizontally below
-  //   Team Leader→ horizontal row under manager, children (Job Owners) in 2-col grid below
-  //   Job Owner  → 2-column vertical grid, no children expected
+  const STEM  = `<div style="width:2px;height:18px;background:#d1d5db;flex-shrink:0;margin:0 auto"></div>`;
+  const VSTEM = `<div style="width:2px;height:10px;background:#d1d5db;flex-shrink:0;margin:0 auto"></div>`;
 
-  const STEM  = `<div style="width:2px;height:20px;background:#d1d5db;flex-shrink:0;margin:0 auto"></div>`;
-  const VSTEM = `<div style="width:2px;height:12px;background:#d1d5db;flex-shrink:0;margin:0 auto"></div>`;
-
-  // Horizontal bar that spans across N children each 220px wide with 16px gap
+  // Horizontal connector over n columns of 220px cards with a 16px gap
   function hBar(n) {
     if (n <= 1) return STEM;
-    const totalW  = n * 220 + (n - 1) * 16;
-    const halfW   = totalW / 2;
-    return `<div style="position:relative;width:${totalW}px;height:20px;flex-shrink:0">
+    const totalW = n * 220 + (n - 1) * 16;
+    return `<div style="position:relative;width:${totalW}px;height:18px;flex-shrink:0">
       <div style="position:absolute;top:0;left:110px;right:110px;height:2px;background:#d1d5db"></div>
-      ${Array.from({length:n}).map((_,i) => {
-        const cx = i * (220 + 16) + 110;
-        return `<div style="position:absolute;top:0;left:${cx}px;width:2px;height:20px;background:#d1d5db;transform:translateX(-50%)"></div>`;
-      }).join('')}
+      ${Array.from({length:n}).map((_,i) => `<div style="position:absolute;top:0;left:${i * 236 + 110}px;width:2px;height:18px;background:#d1d5db;transform:translateX(-50%)"></div>`).join('')}
     </div>`;
   }
 
-  // Helper: find direct reports of a user (case-insensitive email match)
   function directReportsOf(u) {
-    const email = (u.email || '').toLowerCase().trim();
-    return hierarchyUsers.filter(x => (x.reportingManager || '').toLowerCase().trim() === email);
+    const email = emailKey(u.email);
+    return hierarchyUsers.filter(x => emailKey(x.reportingManager) === email && emailKey(x.email) !== email);
   }
 
-  // Single vertical column of job-owner cards below their team leader
-  function jobOwnerGrid(owners) {
-    if (!owners.length) return '';
+  // Order: senior roles first, then bigger teams, then name
+  const RANK = { 'Strategy': 1, 'Management': 2, 'Ops Head': 3, 'Zonal Manager': 4, 'Ops Team Leader': 5, 'Job Owner': 6, 'Doc User': 7 };
+  const teamSize = u => { let n = 0; const walk = x => directReportsOf(x).forEach(c => { n++; walk(c); }); walk(u); return n; };
+  const byRank = (a, b) => (RANK[a.role] || 9) - (RANK[b.role] || 9) || teamSize(b) - teamSize(a) || String(a.name).localeCompare(String(b.name));
+
+  // A person with their team below: people who manage others spread side by
+  // side; people with no team of their own stack in one column
+  function treeBlock(u) {
+    const kids = directReportsOf(u).sort(byRank);
+    if (!kids.length) return `<div style="display:flex;flex-direction:column;align-items:center">${nodeCard(u)}</div>`;
+    const branches = kids.filter(k => directReportsOf(k).length).map(treeBlock);
+    const leaves   = kids.filter(k => !directReportsOf(k).length);
+    if (leaves.length) branches.push(`<div style="display:flex;flex-direction:column;align-items:center">${leaves.map((l, i) => (i ? VSTEM : '') + nodeCard(l)).join('')}</div>`);
     return `<div style="display:flex;flex-direction:column;align-items:center">
-      ${owners.map(u => `${VSTEM}${nodeCard(u)}`).join('')}
-    </div>`;
-  }
-
-  // Team Leader block: card centred, job owners in 2-col grid below
-  function teamLeaderBlock(tl) {
-    const jobOwners = directReportsOf(tl);
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
-      ${nodeCard(tl)}
-      ${jobOwners.length ? `${STEM}${jobOwnerGrid(jobOwners)}` : ''}
-    </div>`;
-  }
-
-  // Manager block: card + its team leaders spread horizontally below
-  function managerBlock(mgr) {
-    const teamLeaders = directReportsOf(mgr);
-    if (!teamLeaders.length) {
-      return `<div style="display:flex;flex-direction:column;align-items:center">${nodeCard(mgr)}</div>`;
-    }
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
-      ${nodeCard(mgr)}
-      ${teamLeaders.length === 1
-        ? `${STEM}${teamLeaderBlock(teamLeaders[0])}`
-        : `${hBar(teamLeaders.length)}
-           <div style="display:flex;gap:16px;align-items:flex-start">
-             ${teamLeaders.map(tl => teamLeaderBlock(tl)).join('')}
-           </div>`
-      }
-    </div>`;
-  }
-
-  // Group of persona (Docs/CS) cards under a labeled branch header
-  function personaBranch(label, members) {
-    if (!members.length) return '';
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
-      <div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:.06em;text-transform:uppercase;background:#f1f5f9;border-radius:6px;padding:4px 10px;margin-bottom:10px">${label}</div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
-        ${members.map(u => nodeCard(u)).join('')}
-      </div>
-    </div>`;
-  }
-
-  // Ops Head (root) block: card + branches spread horizontally below.
-  // Real Managers get the normal nested tree; Docs/CS direct reports are
-  // grouped into labeled branches instead of being treated as managers
-  function opsHeadBlock(root) {
-    const allReports = directReportsOf(root);
-    const managers  = allReports.filter(u => (u.role||'').toLowerCase().trim() === 'manager');
-    const docsUsers = allReports.filter(u => (u.role||'').toLowerCase().trim() === 'docs');
-    const csUsers   = allReports.filter(u => (u.role||'').toLowerCase().trim() === 'cs');
-    const others    = allReports.filter(u => !['manager','docs','cs'].includes((u.role||'').toLowerCase().trim()));
-
-    const branches = [
-      ...managers.map(m => managerBlock(m)),
-      personaBranch('Docs', docsUsers),
-      personaBranch('Ops', csUsers),
-      ...others.map(o => genericBlock(o)),
-    ].filter(Boolean);
-
-    if (!branches.length) {
-      return `<div style="display:flex;flex-direction:column;align-items:center">${nodeCard(root)}</div>`;
-    }
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
-      ${nodeCard(root)}
-      ${branches.length === 1
-        ? `${STEM}${branches[0]}`
-        : `${hBar(branches.length)}
-           <div style="display:flex;gap:16px;align-items:flex-start">
-             ${branches.join('')}
-           </div>`
-      }
-    </div>`;
-  }
-
-  // Generic fallback
-  function genericBlock(u) {
-    const children = directReportsOf(u);
-    if (!children.length) return `<div style="display:flex;flex-direction:column;align-items:center">${nodeCard(u)}</div>`;
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
       ${nodeCard(u)}
-      ${children.length === 1
-        ? `${STEM}${genericBlock(children[0])}`
-        : `${hBar(children.length)}
-           <div style="display:flex;gap:16px;align-items:flex-start">
-             ${children.map(c => genericBlock(c)).join('')}
-           </div>`
-      }
+      ${hBar(branches.length)}
+      <div style="display:flex;gap:16px;align-items:flex-start">${branches.join('')}</div>
     </div>`;
   }
 
-  // Route each root to the right renderer based on role
-  function renderRoot(u) {
-    const role = (u.role || '').toLowerCase().trim();
-    if (role === 'ops head' || role.includes('ops head'))           return opsHeadBlock(u);
-    if (role === 'manager' || role.includes('manager'))             return managerBlock(u);
-    if (role === 'team leader' || role.includes('team leader'))     return teamLeaderBlock(u);
-    if (role === 'job owner' || role.includes('job owner'))         return `<div style="display:flex;flex-direction:column;align-items:center">${nodeCard(u)}</div>`;
-    return genericBlock(u);
-  }
+  const roots = hierarchyUsers.filter(u => {
+    const mgr = emailKey(u.reportingManager), self = emailKey(u.email);
+    return !mgr || mgr === self || !hierarchyEmails.has(mgr);
+  }).sort(byRank);
 
-  // ── Left column: admin cards ──
-  const leftHtml = adminUsers.length ? `
-    <div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0">
-      <div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Administration</div>
-      ${adminUsers.map(u => nodeCard(u, true)).join('')}
-    </div>
-    <div style="width:1px;background:#e2e8f0;align-self:stretch;margin:0 16px;flex-shrink:0"></div>
-  ` : '';
+  const chartHtml = roots.length
+    ? `<div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">${roots.map(treeBlock).join('')}</div>`
+    : `<div style="color:#94a3b8;font-size:13px;padding:8px 0">No team set up yet.</div>`;
 
-  // ── Right: hierarchy trees (one per root — usually one Ops Head) ──
-  const rightHtml = roots.length
-    ? `<div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start">
-        ${roots.map(r => renderRoot(r)).join('')}
-      </div>`
-    : `<div style="color:#94a3b8;font-size:13px;padding:20px 0">
-        No hierarchy defined yet. Set Reporting Manager in Admin Panel.
-      </div>`;
+  const adminHtml = adminUsers.length ? `
+    <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e2e8f0">
+      <div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">Administration</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">${adminUsers.sort((a, b) => String(a.name).localeCompare(String(b.name))).map(u => nodeCard(u, true)).join('')}</div>
+    </div>` : '';
 
-  wrap.innerHTML = `
-    <div style="display:flex;align-items:flex-start;gap:0">
-      ${leftHtml}
-      <div style="flex:1;min-width:0">${rightHtml}</div>
-    </div>`;
+  wrap.innerHTML = chartHtml + adminHtml;
 }
 </script>
 <!-- Feedback Modal -->
