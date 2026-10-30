@@ -3029,7 +3029,9 @@ function setPage(pageId, title, group, el) {
   if (pageId === 'feedback') loadFeedback();
   // Render report pages lazily — only when the user actually navigates to them
   const reportPages = ['summary','open-jobs','total-jobs','unbilled-rev','unposted-cost','revenue-not-billed','cost-not-posted']; // trimmed to the pages that actually exist and render (some ids are aliases of the same div - see pageIdMap above); job-profit/low-profit removed per request
-  if (reportPages.includes(pageId) && allSRR.length) renderPage(pageId);
+  // Draw once the data has loaded, even when this person has no jobs here -
+  // otherwise the page stays on "Loading data…" instead of "No data"
+  if (reportPages.includes(pageId) && rawSRR.length) renderPage(pageId);
   logUsage(pageId);
   setTimeout(convertAllSelects, 50);
 }
