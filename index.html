@@ -3124,6 +3124,17 @@ function selectMonth(id, month, yearOverride) {
   renderMonthPicker(id);
   // Find pageId — strip mp-from-, mp-to-, mp-wk- prefix
   const pageId = id.replace(/^mp-(from|to|wk)-/, '');
+  // From picked later than To (or To earlier than From): swap them
+  const f = pickerState['mp-from-' + pageId], t = pickerState['mp-to-' + pageId];
+  if (/^mp-(from|to)-/.test(id) && f && f.selected && t && t.selected &&
+      f.selected.year * 12 + f.selected.month > t.selected.year * 12 + t.selected.month) {
+    [f.selected, t.selected] = [t.selected, f.selected];
+    f.year = f.selected.year; t.year = t.selected.year;
+    ['from', 'to'].forEach(k => {
+      const st = pickerState['mp-' + k + '-' + pageId], el = document.getElementById('mp-' + k + '-' + pageId + '-lbl');
+      if (el) el.textContent = MONTHS[st.selected.month] + ' ' + st.selected.year;
+    });
+  }
   renderPage(pageId);
 }
 
@@ -3561,6 +3572,7 @@ function renderPage(pageId) {
   if (pageId === 'revenue-not-billed' || pageId === 'unbilled-rev') renderUnbilledRev();
   if (pageId === 'cost-not-posted'    || pageId === 'unposted-cost') renderUnpostedCost();
   restoreOpenRows(pageId, openRows);
+  syncExpandButton(pageId);
   requestAnimationFrame(() => requestAnimationFrame(fitTableHeight));
 }
 
@@ -3586,6 +3598,20 @@ function captureOpenRows(pageId) {
     gtClosed: !!(gt && !gt.classList.contains('open')),
   };
 }
+// The Expand All / Collapse All button shows what a click will do next:
+// Collapse All while any row is open, Expand All when none is
+function syncExpandButton(pageId) {
+  const tbody = reportTbody(pageId);
+  const btn = tbody && tbody.closest('.page') && tbody.closest('.page').querySelector('.ec-btn[data-state]');
+  if (!btn) return;
+  const anyOpen = !!tbody.querySelector('.br-row .rc.open');
+  if ((btn.dataset.state === 'expanded') === anyOpen) return;
+  btn.dataset.state = anyOpen ? 'expanded' : 'collapsed';
+  btn.innerHTML = anyOpen
+    ? '<i class="ti ti-chevrons-up" style="font-size:12px"></i> Collapse All'
+    : '<i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All';
+}
+
 function restoreOpenRows(pageId, state) {
   const tbody = reportTbody(pageId);
   if (!state || !tbody) return;
@@ -4456,6 +4482,10 @@ function updateMsUI(id) {
 function buildMsDropdown(id, items) {
   const dd = document.getElementById('msd-' + id);
   if (!dd) return;
+  // Someone picked on another page/direction may have nothing here - keep
+  // them at the top of the list (ticked) so they can still be unticked
+  const picked = msState[id];
+  if (picked instanceof Set && picked.size) items = [...[...picked].filter(v => !items.includes(v)).sort(), ...items];
   // Only a filter that was never set starts as "All" - null means the user
   // picked None (e.g. carried over from another page) and must stay None
   if (msState[id] === undefined) msState[id] = new Set();
