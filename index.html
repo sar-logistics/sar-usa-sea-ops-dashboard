@@ -4456,7 +4456,9 @@ function updateMsUI(id) {
 function buildMsDropdown(id, items) {
   const dd = document.getElementById('msd-' + id);
   if (!dd) return;
-  if (!msState[id]) msState[id] = new Set();
+  // Only a filter that was never set starts as "All" - null means the user
+  // picked None (e.g. carried over from another page) and must stay None
+  if (msState[id] === undefined) msState[id] = new Set();
 
   const type = id.split('-')[0];
   const placeholders = { zone: 'Search zones…', branch: 'Search branches…', owner: 'Search owners…' };
@@ -4476,7 +4478,7 @@ function buildMsDropdown(id, items) {
             ${(msState[id] instanceof Set && msState[id].size===0) || (msState[id] instanceof Set && msState[id].has(v)) ? 'checked' : ''}/>
           <span>${v}</span>
         </label>`).join('')}
-    </div>`;
+    </div>`;  updateMsUI(id);  // label/badge always match the (possibly carried-over) state
 }
 
 // Close multiselects when clicking outside
