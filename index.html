@@ -2389,7 +2389,8 @@ function refreshForDirection(dir) {
   applyRLS();
   const activePage = document.querySelector('.nav-item.active');
   const activePageId = activePage?.getAttribute('onclick')?.match(/setPage\('([^']+)'/)?.[1] || 'summary';
-  initFilters(activePageId);
+  // keep the dates the user picked - only a page never set up gets the defaults
+  if (!pickerState['mp-from-' + activePageId]) initFilters(activePageId);
   renderPage(activePageId);
 }
 
@@ -2399,7 +2400,8 @@ function refreshForGen() {
   applyRLS();
   const activePage = document.querySelector('.nav-item.active');
   const activePageId = activePage?.getAttribute('onclick')?.match(/setPage\('([^']+)'/)?.[1] || 'summary';
-  initFilters(activePageId);
+  // keep the dates the user picked - only a page never set up gets the defaults
+  if (!pickerState['mp-from-' + activePageId]) initFilters(activePageId);
   renderPage(activePageId);
 }
 
@@ -3591,10 +3593,17 @@ function reportRowLabel(tr) {
 }
 function captureOpenRows(pageId) {
   const tbody = reportTbody(pageId);
-  if (!tbody || !tbody.querySelector('.br-row')) return null;
+  if (!tbody) return null;
+  if (!tbody.querySelector('.br-row')) {
+    // Empty table (e.g. a filter with no jobs): remember Expand All via the button
+    const btn = tbody.closest('.page') && tbody.closest('.page').querySelector('.ec-btn[data-state]');
+    return btn && btn.dataset.state === 'expanded' ? { open: new Set(), allOpen: true, gtClosed: false } : null;
+  }
   const gt = tbody.querySelector('.gt-block .rc');
+  const rows = [...tbody.querySelectorAll('.br-row')];
   return {
-    open: new Set([...tbody.querySelectorAll('.br-row')].filter(tr => tr.querySelector('.rc.open')).map(reportRowLabel)),
+    open: new Set(rows.filter(tr => tr.querySelector('.rc.open')).map(reportRowLabel)),
+    allOpen: rows.every(tr => tr.querySelector('.rc.open')),  // after Expand All, new rows open too
     gtClosed: !!(gt && !gt.classList.contains('open')),
   };
 }
@@ -3603,7 +3612,7 @@ function captureOpenRows(pageId) {
 function syncExpandButton(pageId) {
   const tbody = reportTbody(pageId);
   const btn = tbody && tbody.closest('.page') && tbody.closest('.page').querySelector('.ec-btn[data-state]');
-  if (!btn) return;
+  if (!btn || !tbody.querySelector('.br-row')) return;  // empty table: keep the user's choice
   const anyOpen = !!tbody.querySelector('.br-row .rc.open');
   if ((btn.dataset.state === 'expanded') === anyOpen) return;
   btn.dataset.state = anyOpen ? 'expanded' : 'collapsed';
@@ -3617,7 +3626,7 @@ function restoreOpenRows(pageId, state) {
   if (!state || !tbody) return;
   tbody.querySelectorAll('.br-row').forEach(tr => {
     const rc = tr.querySelector('.rc');
-    if (rc && !rc.classList.contains('open') && state.open.has(reportRowLabel(tr))) toggleRows(rc.id.replace('rc-', ''));
+    if (rc && !rc.classList.contains('open') && (state.allOpen || state.open.has(reportRowLabel(tr)))) toggleRows(rc.id.replace('rc-', ''));
   });
   const gt = tbody.querySelector('.gt-block .rc');
   if (state.gtClosed && gt && gt.classList.contains('open')) toggleRows(gt.id.replace('rc-', ''));
@@ -6889,7 +6898,7 @@ function renderSummary() {
         ? `<span style="font-weight:700">${fmtIndian(amt)}</span> unposted`
         : `<span style="font-weight:700">${pct}%</span>`;
       return `<div style="background:rgba(255,255,255,.07);border-radius:8px;padding:7px 10px;margin-bottom:5px;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px">
-        <div style="font-size:12px;font-weight:700;color:#fff;width:62px;flex-shrink:0">${c.label}</div>
+        <div style="font-size:12px;font-weight:700;color:#fff;min-width:62px;white-space:nowrap;flex-shrink:0">${c.label}</div>
         <div style="flex:1;min-width:0">
           <div style="height:8px;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.08);margin-bottom:4px;display:flex">
             <div style="width:${fRatio}%;background:#e8573a;height:100%;border-radius:20px 0 0 20px;min-width:${f>0?3:0}px;flex-shrink:0"></div>
@@ -6908,7 +6917,7 @@ function renderSummary() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)">
         <div style="flex:1;min-width:0;padding-right:12px">
           <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:3px">${s.report.title}</div>
-          <div style="font-size:10px;color:#8ba3c7">Monthly breakdown · flagged vs clear</div>
+          <div style="font-size:10px;color:#8ba3c7">${({ weekly: 'Weekly', fortnightly: 'Fortnightly', quarterly: 'Quarterly', yearly: 'Yearly', custom: 'Custom range' })[getDateRange('summary').view] || 'Monthly'} breakdown · flagged vs clear</div>
         </div>
         <div style="flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
