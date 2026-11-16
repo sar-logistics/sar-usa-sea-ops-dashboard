@@ -1,5 +1,14 @@
 import { MongoClient } from 'mongodb';
 const uri = process.env.MONGO_URI;
+// Collections the dashboard's batch API (api/mongo-batch.js) serves from its in-memory copy.
+// Any write to them moves _meta.dataVersion so that copy is rebuilt on the next page load
+// (otherwise an Admin Panel change or Sync Users stayed invisible for up to 6 hours).
+const CACHED_COLLECTIONS = new Set(['users', 'usa_ops_ops_mapping', 'usa_ops_jobs', 'usa_ops_etdeta']);
+async function stampChange(db, collection) {
+  if (!CACHED_COLLECTIONS.has(collection)) return;
+  await db.collection('_meta').updateOne(
+    { _id: 'dataVersion' }, { $set: { updatedAt: new Date() } }, { upsert: true });
+}
 let client;
 async function getClient() {
   if (!client) { client = new MongoClient(uri); await client.connect(); }
@@ -18,14 +27,15 @@ export default async function handler(req, res) {
     const col = db.collection(collection);
     if (action === 'find')      { const docs = await col.find(filter).skip(skip).limit(limit).toArray(); return res.status(200).json({ documents: docs }); }
     if (action === 'findOne')   { const doc  = await col.findOne(filter); return res.status(200).json({ document: doc }); }
-    if (action === 'insertOne') { const r = await col.insertOne(document); return res.status(200).json({ insertedId: r.insertedId }); }
-    if (action === 'updateOne') { const r = await col.updateOne(filter, update, { upsert: true }); return res.status(200).json({ result: r }); }
+    if (action === 'insertOne') { const r = await col.insertOne(document); await stampChange(db, collection); return res.status(200).json({ insertedId: r.insertedId }); }
+    if (action === 'updateOne') { const r = await col.updateOne(filter, update, { upsert: true }); await stampChange(db, collection); return res.status(200).json({ result: r }); }
     if (action === 'bulkWrite') {
       const ops = documents.map(d => ({ updateOne: { filter: { shipmentId: d.shipmentId }, update: { $set: d }, upsert: true } }));
       const r   = await col.bulkWrite(ops, { ordered: false });
+      await stampChange(db, collection);
       return res.status(200).json({ result: r });
     }
-    if (action === 'deleteMany') { const r = await col.deleteMany(filter); return res.status(200).json({ result: r }); }
+    if (action === 'deleteMany') { const r = await col.deleteMany(filter); await stampChange(db, collection); return res.status(200).json({ result: r }); }
     if (action === 'countDocuments') { const n = await col.countDocuments(filter); return res.status(200).json({ count: n }); }
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {

@@ -16,8 +16,18 @@ async function getClient() {
 
 let cache = { data: null, builtAt: null };
 
+// Every write to the data this API serves (sync pushes here, Admin Panel / Sync Users edits via
+// api/mongo.js) moves _meta.dataVersion. A GET rebuilds its copy when the data changed after the
+// copy was built - Vercel runs several copies of this function, and resetting `cache` below only
+// clears the one copy that received the push, so the others kept serving old data for hours.
+async function stampChange(db) {
+  await db.collection('_meta').updateOne(
+    { _id: 'dataVersion' }, { $set: { updatedAt: new Date() } }, { upsert: true });
+}
+
 async function buildCache(db) {
   console.log('[USA-OPS] Building cache...');
+  const startedAt = new Date();  // a write during the build makes the next GET rebuild again
   // usa_ops_jobs replaces the old usa_ops_export/usa_ops_import split - one
   // combined collection now holds every LOB (Sea/Road/Air Export, Sea/Air
   // Import, General, Road Domestic), with a `direction` field on each
@@ -34,7 +44,7 @@ async function buildCache(db) {
   console.log(`[USA-OPS] Total docs: ${jobDocs.length}, users: ${userDocs.length}, etdEta: ${etdEtaDocs.length}, opsMapping: ${opsMappingDocs.length}`);
   cache = { data: jobDocs, users: userDocs, etdEta: etdEtaDocs, opsMapping: opsMappingDocs,
             lastSyncAt: pushTimes.length ? new Date(Math.max(...pushTimes)).toISOString() : null,
-            builtAt: new Date().toISOString() };
+            builtAt: startedAt.toISOString() };
   return cache;
 }
 
@@ -56,6 +66,7 @@ export default async function handler(req, res) {
       const colName = direction === 'Jobs' ? 'usa_ops_jobs' : direction === 'EtdEta' ? 'usa_ops_etdeta' : direction === 'OpsMapping' ? 'usa_ops_ops_mapping' : null;
       if (!colName) return res.status(400).json({ error: 'Invalid direction' });
       const result = await db.collection(colName).deleteMany({});
+      await stampChange(db);
       cache = { data: null, builtAt: null };
       return res.status(200).json({ deleted: result.deletedCount, direction });
     }
@@ -67,6 +78,7 @@ export default async function handler(req, res) {
       if (direction === 'OpsMapping') {
         // Ops Mapping tab (Job Owner -> Reporting To): wiped first, then inserted as-is
         const result = await db.collection('usa_ops_ops_mapping').insertMany(records, { ordered: false });
+        await stampChange(db);
         cache = { data: null, builtAt: null };
         return res.status(200).json({ inserted: result.insertedCount, direction });
       }
@@ -138,6 +150,7 @@ export default async function handler(req, res) {
       // (read by api/last-updated.js for the SAR Systems Hub's dashboard card).
       await db.collection('_meta').updateOne(
         { _id: 'lastPush_' + colName }, { $set: { updatedAt: new Date() } }, { upsert: true });
+      await stampChange(db);
       cache = { data: null, builtAt: null };
       return res.status(200).json({ upserted: result.upsertedCount, modified: result.modifiedCount, direction });
     }
@@ -148,11 +161,17 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const now = new Date();
-      if (!cache.data || !cache.builtAt || (now - new Date(cache.builtAt)) > TTL_MS) {
-        const c  = await getClient();
-        const db = c.db(DB);
-        await buildCache(db);
+      const c  = await getClient();
+      const db = c.db(DB);
+      // Rebuild when asked (the page's Refresh button), when the copy is old, or when the data
+      // changed after this copy was built (a sync push or a user edit, on any copy of this function)
+      const force = req.query && (req.query.forceRefresh === '1' || req.query.forceRefresh === 'true');
+      let stale = !cache.data || !cache.builtAt || (now - new Date(cache.builtAt)) > TTL_MS || force;
+      if (!stale) {
+        const v = await db.collection('_meta').findOne({ _id: 'dataVersion' }, { projection: { updatedAt: 1 } });
+        stale = !!(v && v.updatedAt && new Date(v.updatedAt) > new Date(cache.builtAt));
       }
+      if (stale) await buildCache(db);
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('X-Cache-Age', Math.floor((new Date() - new Date(cache.builtAt)) / 1000));
       return res.status(200).json({ records: cache.data, users: cache.users || [], etdEta: cache.etdEta || [], opsMapping: cache.opsMapping || [], lastSyncAt: cache.lastSyncAt || null, builtAt: cache.builtAt });

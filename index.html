@@ -662,6 +662,7 @@ body.dashboard-blurred .content::after{background:rgba(15,23,42,0)}
 .sec-ct{font-size:11px;color:var(--text3)}
 
 /* TABLE */
+.tbl-wrap td:has(> span[onclick]){cursor:pointer}
 .tbl-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:auto;margin-bottom:14px;min-height:300px}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
 thead th{background:#f8fafc;padding:9px 14px;text-align:right;font-weight:600;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
@@ -1559,16 +1560,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-unbilled-rev"></div>
                 </div>
               </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">Operation Lock Condition</div>
-                <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
-                  <span class="tgl-switch">
-                    <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUrRequireOpsLock(this)">
-                    <span class="tgl-track"></span>
-                  </span>
-                  Require Ops Lock = Yes
-                </label>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('unbilled-rev')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1582,7 +1573,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div class="kpi orange">
             <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Count of Unbilled Revenue</span></div>
             <div class="kpi-val orange" id="kv-ur-flagged">—</div>
-            <div class="kpi-sub">Unbilled Revenue ≠ 0</div>
+            <div class="kpi-sub" id="kv-ur-rule">Unbilled Revenue ≠ 0, ETD/ETA on or before today − 3</div>
           </div>
         </div>
         <div class="sec-hd">
@@ -1591,6 +1582,13 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="sec-ct" id="sc-unbilled-rev">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
             <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('unbilled-rev', this)" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-left:4px" title="Only jobs that have an Operation Lock Date">
+              <span class="tgl-switch">
+                <input type="checkbox" id="chk-ur-require-ops-lock" onchange="toggleUrRequireOpsLock(this)">
+                <span class="tgl-track"></span>
+              </span>
+              Require Ops Lock
+            </label>
             <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
               <span class="tgl-switch">
                 <input type="checkbox" id="ub-viewmode-chk" onchange="toggleUbViewMode(this)">
@@ -1670,16 +1668,6 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                   <div class="ms-dropdown" id="msd-owner-unposted-cost"></div>
                 </div>
               </div>
-              <div class="add-filter-row">
-                <div class="add-filter-label">Operation Lock Condition</div>
-                <label style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text2);cursor:pointer">
-                  <span class="tgl-switch">
-                    <input type="checkbox" id="chk-uc-require-ops-lock" onchange="toggleUcRequireOpsLock(this)">
-                    <span class="tgl-track"></span>
-                  </span>
-                  Require Ops Lock = Yes
-                </label>
-              </div>
             </div>
           </div>
           <button class="dv-btn" onclick="refreshData('unposted-cost')" style="display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh" style="font-size:13px"></i> Refresh</button>
@@ -1693,7 +1681,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <div class="kpi orange">
             <div class="kpi-top"><span class="kpi-dot orange"></span><span class="kpi-lbl">Count of Unposted Cost</span></div>
             <div class="kpi-val orange" id="kv-uc-flagged">—</div>
-            <div class="kpi-sub">Unposted Cost ≠ 0</div>
+            <div class="kpi-sub" id="kv-uc-rule">Unposted Cost ≠ 0, ETD/ETA on or before today − 7</div>
           </div>
         </div>
         <div class="sec-hd">
@@ -1702,6 +1690,13 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
             <div class="sec-ct" id="sc-unposted-cost">Loading…</div>
             <div style="width:1px;height:14px;background:var(--border);margin:0 2px"></div>
             <button class="ec-btn" data-state="collapsed" onclick="toggleExpandCollapse('unposted-cost', this)" style="background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);font-weight:500"><i class="ti ti-chevrons-down" style="font-size:12px"></i> Expand All</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;margin-left:4px" title="Only jobs that have an Operation Lock Date">
+              <span class="tgl-switch">
+                <input type="checkbox" id="chk-uc-require-ops-lock" onchange="toggleUcRequireOpsLock(this)">
+                <span class="tgl-track"></span>
+              </span>
+              Require Ops Lock
+            </label>
             <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer">
               <span class="tgl-switch">
                 <input type="checkbox" id="uc-viewmode-chk" onchange="toggleUcViewMode(this)">
@@ -1761,7 +1756,8 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                 style="width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px 7px 32px;font-size:13px;color:#0f172a;outline:none;background:#fff">
             </div>
             <span id="usageCount" style="font-size:13px;color:#64748b"></span>
-            <button onclick="exportUsageToExcel()" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:13px;font-weight:600;cursor:pointer">
+            <button onclick="loadUsageAnalytics(true)" title="Reload usage" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;color:#0f172a;background:#fff;cursor:pointer">↻ Refresh</button>
+            <button onclick="exportUsageToExcel()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:13px;font-weight:600;cursor:pointer">
               <i class="ti ti-file-spreadsheet" style="font-size:14px"></i> Export to Excel
             </button>
           </div>
@@ -1799,7 +1795,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
                 style="width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px 8px 34px;font-size:13px;color:#0f172a;outline:none;background:#fff">
             </div>
             <span id="feedbackCount" style="font-size:12.5px;color:#64748b;font-weight:500"></span>
-            <button onclick="loadFeedback()" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;font-size:13px;font-weight:600;cursor:pointer">
+            <button onclick="loadFeedback(true)" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;font-size:13px;font-weight:600;cursor:pointer">
               <i class="ti ti-refresh" style="font-size:14px"></i> Refresh
             </button>
           </div>
@@ -3352,10 +3348,18 @@ function initFilters(pageId) {
 
 // Hide scorecards and grand total for yearly/quarterly (multi-FY column views)
 function showScorecards(view) { return view !== 'yearly' && view !== 'quarterly'; }
+// Quarterly view spans every year (one column per year for the picked quarter), so jobs must
+// also be in that quarter - otherwise totals, KPIs and badges counted all four quarters.
+// USA quarters are calendar quarters (Q1 = Jan-Mar).
+function selectedQuarter(pageId, view) {
+  return view === 'quarterly' ? Number((document.getElementById('quarter-' + pageId) || {}).value || 1) : 0;
+}
+function quarterOf(d) { return Math.floor(d.getMonth() / 3) + 1; }
 function showGrandTotal(view)  { return view !== 'yearly' && view !== 'quarterly'; }
 
 function filterByDate(data, pageId) {
-  const { from, to } = getDateRange(pageId);
+  const { from, to, view } = getDateRange(pageId);
+  const q = selectedQuarter(pageId, view);
   return data.filter(r => {
     let d;
     if (r.chargeType !== undefined) {
@@ -3374,7 +3378,7 @@ function filterByDate(data, pageId) {
       const raw = r.direction === 'Import' ? (r.destinationEta || r.originEtd) : (r.originEtd || r.etdDate);
       d = raw ? new Date(raw) : null;
     }
-    return d && d >= from && d <= to;
+    return d && d >= from && d <= to && (!q || quarterOf(d) === q);
   });
 }
 
@@ -3496,10 +3500,11 @@ function avInitials(name) {
   return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
 }
 function filterByDateJPA(data, pageId) {
-  const { from, to } = getDateRange(pageId);
+  const { from, to, view } = getDateRange(pageId);
+  const q = selectedQuarter(pageId, view);
   return data.filter(r => {
     const d = r.jobDate ? new Date(r.jobDate) : null;
-    return d && d >= from && d <= to;
+    return d && d >= from && d <= to && (!q || quarterOf(d) === q);
   });
 }
 
@@ -3538,6 +3543,14 @@ function colCells(counts, recs, cols, colKeyFn, titlePfx, label, colSet, isAmoun
     return `<td style="text-align:right">${disp}</td>`;
   }).join('');
 }
+
+// A click anywhere in a number's cell opens its drill-down, not only on the number itself
+document.addEventListener('click', e => {
+  if (e.target.closest('[onclick]')) return;            // the number (or a clickable cell) handled it
+  const td = e.target.closest('.tbl-wrap td');
+  const num = td && td.querySelector(':scope > span[onclick]');
+  if (num) num.click();
+});
 
 // ── RENDER: Job not linked ────────────────────────────────────
 
@@ -4030,7 +4043,6 @@ const DV_COLS_WIP_REVENUE = [
   { key:'actualProfitUsd',      label:'Actual Profit',     num:true         },
   { key:'financialLockDate', label:'Financial Lock Date', date:true      },
   { key:'receivableFrom',    label:'Receivable From'                     },
-  { key:'payableTo',         label:'Payable To'                          },
 ];
 
 const DV_COLS_WIP_COST = [
@@ -4052,7 +4064,6 @@ const DV_COLS_WIP_COST = [
   { key:'estimatedProfitUsd',   label:'Estimated Profit',  num:true         },
   { key:'actualProfitUsd',      label:'Actual Profit',     num:true         },
   { key:'financialLockDate', label:'Financial Lock Date', date:true      },
-  { key:'receivableFrom',    label:'Receivable From'                     },
   { key:'payableTo',         label:'Payable To'                          },
 ];
 
@@ -4095,12 +4106,13 @@ function etdEtaMatchesDirection(r) {
 }
 
 function filterEtdEtaByDate(records, pageId) {
-  const { from, to } = getDateRange(pageId);
+  const { from, to, view } = getDateRange(pageId);
+  const q = selectedQuarter(pageId, view);
   return (records || []).filter(r => {
     if (!etdEtaMatchesDirection(r)) return false;
     if (rlsOwners && !rlsOwners.has(ownerKey(r.jobOwner))) return false;
     const d = r.etdEtaNew ? new Date(r.etdEtaNew) : null;
-    return d && !isNaN(d) && d >= from && d <= to;
+    return d && !isNaN(d) && d >= from && d <= to && (!q || quarterOf(d) === q);
   });
 }
 
@@ -4124,6 +4136,32 @@ function groupEtdEtaByShipment(filteredDD, sumField) {
   return Object.values(byShipment);
 }
 
+// "Within 3 / 7 days of SOB": a shipment is flagged only once its ETD/ETA is on or before
+// today − 3 (Revenue Not Billed) / today − 7 (Cost Not Posted). Calendar days - the cutoff day
+// itself counts - the same rule as the Sea dashboard. Used by both pages and the Summary.
+const ETD_CUTOFF_DAYS = { ur: 3, uc: 7 };
+function etdEtaCutoffDate(days) {
+  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - days);
+  return d;
+}
+function etdEtaPastCutoff(sh, days) {
+  const d = sh.etdEtaNew ? new Date(sh.etdEtaNew) : null;
+  if (!d || isNaN(d)) return false;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()) <= etdEtaCutoffDate(days);
+}
+function etdCutoffText(s) {
+  const days = ETD_CUTOFF_DAYS[s];
+  return 'ETD/ETA on or before ' + fmtDate(etdEtaCutoffDate(days)) + ' (today − ' + days + ')';
+}
+function updateEtdCutoffTexts() {
+  const ur = document.getElementById('kv-ur-rule'); if (ur) ur.textContent = 'Unbilled Revenue ≠ 0, ' + etdCutoffText('ur');
+  const uc = document.getElementById('kv-uc-rule'); if (uc) uc.textContent = 'Unposted Cost ≠ 0, ' + etdCutoffText('uc');
+  document.querySelectorAll('.nav-item[onclick*="\'revenue-not-billed\'"]').forEach(el =>
+    el.setAttribute('data-tooltip', 'Revenue not billed within 3 days of SOB - ' + etdCutoffText('ur')));
+  document.querySelectorAll('.nav-item[onclick*="\'cost-not-posted\'"]').forEach(el =>
+    el.setAttribute('data-tooltip', 'Cost not posted within 7 days of SOB - ' + etdCutoffText('uc')));
+}
+
 // colSetName is the STRING ('DV_COLS_WIP_REVENUE'/'DV_COLS_WIP_COST') used
 // by dvOpen() (grid cell clicks, which resolve it internally via colSetMap).
 // colSetArr is the ACTUAL ARRAY, needed for direct openDrill() calls (KPI
@@ -4131,6 +4169,7 @@ function groupEtdEtaByShipment(filteredDD, sumField) {
 // not a string name; passing the string there was the bug causing the
 // wrong/broken drill-through on KPI clicks.
 function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSetArr, requireOpsLock) {
+  updateEtdCutoffTexts();
   const { cols, label, view } = getColumns(pageId);
   const _kpiRow = document.querySelector('#page-' + pageId + ' .kpi-row');
   if (_kpiRow) _kpiRow.style.display = showScorecards(view) ? '' : 'none';
@@ -4141,7 +4180,8 @@ function _renderEtdEtaFlagged(pageId, s, flagLabel, sumField, colSetName, colSet
   const shipments = groupEtdEtaByShipment(filteredDD, sumField);
   // Require Ops Lock (filter toggle): only jobs that have an Operation Lock Date. Off by default.
   const isOpsLocked = sh => sh.operationLockDate && String(sh.operationLockDate).trim() !== '';
-  const flaggedShipments = shipments.filter(sh => sh.sum > 0 && (!requireOpsLock || isOpsLocked(sh)));
+  // ...and only once the 3 / 7-day cutoff has passed (ETD/ETA on or before today − 3 / today − 7)
+  const flaggedShipments = shipments.filter(sh => sh.sum > 0 && etdEtaPastCutoff(sh, ETD_CUTOFF_DAYS[s]) && (!requireOpsLock || isOpsLocked(sh)));
 
   const totalJobs = shipments.length;
   const flaggedCount = flaggedShipments.length;
@@ -4563,12 +4603,29 @@ function applyDropdownFilters(data, pageId) {
 }
 
 // ── REFRESH ──────────────────────────────────────────────────
+// Short message at the bottom of the screen
+function showToast(msg, sub) {
+  let t = document.getElementById('appToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'appToast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:10000;max-width:90vw;transition:opacity .25s';
+    document.body.appendChild(t);
+  }
+  t.innerHTML = esc(msg) + (sub ? '<span style="opacity:.7;margin-left:8px">' + esc(sub) + '</span>' : '');
+  t.style.display = 'block'; t.style.opacity = '1';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => { t.style.display = 'none'; }, 300); }, 3500);
+}
+
 async function refreshData(pageId) {
   const btn = document.querySelector('[onclick="refreshData(\''+pageId+'\')"]');
   if (btn) btn.innerHTML = '<i class="ti ti-refresh" style="font-size:13px;animation:spin .7s linear infinite"></i> Refreshing…';
   try {
     const resp = await fetch(BATCH_API + '?t=' + Date.now() + '&forceRefresh=1', { method:'GET', headers:{'Cache-Control':'no-cache, no-store'} });
-    const data = await resp.json();
+    const data = await resp.json().catch(() => null);
+    // A server error must not wipe the page (it showed 0 jobs): keep the data already loaded
+    if (!resp.ok || !data || !Array.isArray(data.records)) throw new Error('refresh failed: HTTP ' + resp.status + (data && data.error ? ' - ' + data.error : ''));
     rawSRR    = data.records    || [];
     updateRateLabel();
     rawJPA    = [];
@@ -4581,10 +4638,12 @@ async function refreshData(pageId) {
     opsMapping = data.opsMapping || [];
     dataSyncAt = data.lastSyncAt || dataSyncAt;
     applyRLS();
+    updateMainMetricsBadges();  // other pages' sidebar badges (this page is drawn next)
     // keep the dates/filters the user picked - only the data is reloaded
     renderPage(pageId);
     markDataUpdated();
-  } catch(e) { console.error('Refresh error:', e); }
+    showToast('Data refreshed', rawSRR.length.toLocaleString() + ' jobs');
+  } catch(e) { console.error('Refresh error:', e); showToast('Refresh failed - showing the last loaded data. Try again in a minute.'); }
   finally {
     if (btn) btn.innerHTML = '<i class="ti ti-refresh" style="font-size:13px"></i> Refresh';
   }
@@ -5570,7 +5629,9 @@ async function submitFeedback() {
 // ── FEEDBACK PAGE (Admin only) ─────────────────────────────────
 let _feedbackRows = [];
 
-async function loadFeedback() {
+async function loadFeedback(force) {
+  if (!force && window._feedbackLoaded) return;
+  window._feedbackLoaded = true;
   const tbody = document.getElementById('feedbackTbody');
   const countEl = document.getElementById('feedbackCount');
   if (!tbody) return;
@@ -5874,7 +5935,9 @@ function logUsage(report) {
 // ── USAGE ANALYTICS ──────────────────────────────────────────
 let _usageRows = []; // full dataset for filtering
 
-async function loadUsageAnalytics() {
+async function loadUsageAnalytics(force) {
+  if (!force && window._usageLoaded) return;
+  window._usageLoaded = true;
   _usageSort = { key: null, dir: 1 };
   _usageFilteredRows = null;
   document.querySelectorAll('[id^="usort-"]').forEach(el => {
@@ -6109,10 +6172,19 @@ const ROLE_GROUPS = [
   { label: 'DOC USER',           roles: ['Doc User','doc user'] },
 ];
 
-async function loadAdminPanel() {
-  // Users come straight from the database here - the main data feed is
-  // cached for hours, so users added elsewhere would otherwise not show
+// System pages load once per session; force = reload (Refresh button, or after users change)
+async function loadAdminPanel(force) {
+  if (!force && window._adminLoaded) return;
+  if (force) { window._teamsRendered = false; window._usageLoaded = false; }  // they show users too
+  // Users (and, on a reload, Ops Mapping) come straight from the database here
   await refreshAllUsers();
+  if (force) {
+    try {
+      const om = await fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'find', collection:'usa_ops_ops_mapping', filter:{}, limit:5000 }) }).then(r => r.json());
+      if (Array.isArray(om.documents)) opsMapping = om.documents;
+    } catch (e) { console.warn('[admin] Ops Mapping reload failed:', e); }
+  }
   const users = allUsers || [];
 
   const allZones    = [...new Set(rawSRR.map(r => r.zone).filter(Boolean))].sort();
@@ -6137,6 +6209,12 @@ async function loadAdminPanel() {
       </button>
       <button onclick="openImportModal()" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:500;color:#0f172a;background:#fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.07)">
         ⬆ Import CSV
+      </button>
+      <button onclick="openSyncUsers()" title="Add accounts for people in the Ops Mapping sheet who don't have one yet, and match names to Ops Mapping" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #bfdbfe;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:500;color:#1d4ed8;background:#eff6ff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        ⇄ Sync Users
+      </button>
+      <button onclick="loadAdminPanel(true)" title="Reload users" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:500;color:#0f172a;background:#fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        ↻ Refresh
       </button>
       <div style="position:relative;flex:1;max-width:360px">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px">🔍</span>
@@ -6182,6 +6260,7 @@ async function loadAdminPanel() {
   document.getElementById('adminContent').innerHTML = h;
   renderAddUserModal(users);
   renderEditUserModal(users);
+  window._adminLoaded = true;
 }
 
 function renderUserCard(u, currentUser) {
@@ -6346,7 +6425,137 @@ async function saveNewUser() {
   });
   await refreshAllUsers();
   closeAddUserModal();
-  loadAdminPanel();
+  loadAdminPanel(true);
+}
+
+// ── SYNC USERS from the Ops Mapping tab ──────────────────────
+// Matched by email: everyone in Ops Mapping (Job Owner and Reporting To columns) with an email
+// but no account is added as Job Owner (roles are changed afterwards with Edit), and an existing
+// account whose name differs from Ops Mapping can be renamed to match (ticked in the review).
+// Roles are never changed and no account is deleted.
+function _syncEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function closeSyncUsers() { const m = document.getElementById('syncUsersModal'); if (m) m.remove(); }
+function _syncModal(inner) {
+  closeSyncUsers();
+  const m = document.createElement('div');
+  m.id = 'syncUsersModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+  m.innerHTML = `<div style="background:#fff;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.25);width:min(720px,100%);max-height:85vh;display:flex;flex-direction:column;overflow:hidden">${inner}</div>`;
+  m.addEventListener('click', e => { if (e.target === m) closeSyncUsers(); });
+  document.body.appendChild(m);
+}
+async function openSyncUsers() {
+  _syncModal('<div style="padding:28px;color:#64748b;font-size:13px">Checking Ops Mapping against existing users…</div>');
+  let users = [];
+  try {
+    // fresh users AND fresh Ops Mapping (the copy loaded with the page goes stale after a sync)
+    const post = body => fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => r.json());
+    const [u, om] = await Promise.all([
+      post({ action:'find', collection:'users', filter:{}, limit:5000 }),
+      post({ action:'find', collection:'usa_ops_ops_mapping', filter:{}, limit:5000 }),
+    ]);
+    users = u.documents || [];
+    if (Array.isArray(om.documents)) opsMapping = om.documents;
+  } catch (e) {
+    _syncModal('<div style="padding:28px;color:#b91c1c;font-size:13px">Could not load users - try again.</div>');
+    return;
+  }
+  const em = v => String(v || '').toLowerCase().trim();
+  const clean = v => String(v || '').replace(/\s+/g, ' ').trim();
+  const key = v => clean(v).toLowerCase();
+  const byEmail = {};
+  users.forEach(u => { byEmail[em(u.email)] = u; });
+
+  // Every name Ops Mapping gives each email (Job Owner and Reporting To columns)
+  const names = {};
+  (opsMapping || []).forEach(r => {
+    [[r.jobOwnerEmail, r.jobOwner], [r.reportingToEmail, r.reportingTo]].forEach(([e, n]) => {
+      e = em(e); n = clean(n);
+      if (e && n) (names[e] = names[e] || new Map()).set(key(n), n);
+    });
+  });
+  const ownRow = {};   // a person's own row (to find who they report to)
+  (opsMapping || []).forEach(r => { const e = em(r.jobOwnerEmail); if (e && !ownRow[e]) ownRow[e] = r; });
+
+  // 1. New people: an email in Ops Mapping with no account -> added as Job Owner
+  // 2. Name updates: an existing account whose name differs from Ops Mapping -> renamed to match
+  //    (the dashboard matches a person's own jobs by name, and Ops Mapping uses the job data's spelling)
+  // An email that Ops Mapping gives to two different names is skipped (fix the sheet first).
+  const add = [], renames = [], conflicts = [], noEmail = new Set();
+  (opsMapping || []).forEach(r => { if (clean(r.jobOwner) && !em(r.jobOwnerEmail)) noEmail.add(clean(r.jobOwner)); });
+  Object.entries(names).forEach(([e, m]) => {
+    const list = [...m.values()];
+    if (list.length > 1) { conflicts.push({ email: e, names: list, hasAccount: !!byEmail[e] }); return; }
+    const name = list[0], u = byEmail[e], own = ownRow[e];
+    if (!u) {
+      add.push({ name, email: e, role: 'Job Owner', reportingManager: own ? em(own.reportingToEmail) : '', reportingTo: own ? clean(own.reportingTo) : '' });
+    } else if (key(u.name) !== key(name)) {
+      // same person? (share a first or last name) -> ticked; otherwise unticked with a warning
+      const a = key(u.name).split(' '), b = key(name).split(' ');
+      const same = a.some(t => t.length > 2 && b.includes(t)) || b.some(t => t.length > 2 && a.some(x => x.length > 2 && (x.startsWith(t) || t.startsWith(x))));
+      renames.push({ email: e, from: clean(u.name), to: name, role: u.role || '', same });
+    }
+  });
+  window._syncCandidates = add;
+  window._syncRenames = renames;
+
+  const td = 'padding:8px 10px;border-bottom:1px solid #f1f5f9';
+  const addRows = add.map(a => `<tr><td style="${td}">${_syncEsc(a.name)}</td><td style="${td};color:#475569">${_syncEsc(a.email)}</td><td style="${td};font-weight:600;color:#b45309">Job Owner</td><td style="${td};color:#475569">${_syncEsc(a.reportingTo || '—')}</td></tr>`).join('');
+  const renRows = renames.map((r, i) => `<tr${r.same ? '' : ' style="background:#fff7ed"'}><td style="${td}"><input type="checkbox" id="syncRen${i}" ${r.same ? 'checked' : ''}></td><td style="${td}">${_syncEsc(r.from)}</td><td style="${td};font-weight:600">${_syncEsc(r.to)}</td><td style="${td};color:#475569">${_syncEsc(r.email)}</td><td style="${td};color:#475569">${_syncEsc(r.role)}${r.same ? '' : '<div style="color:#b45309;font-size:11px;margin-top:2px">Looks like a different person - check this email in Ops Mapping and the Admin Panel</div>'}</td></tr>`).join('');
+  const notes = [];
+  if (conflicts.length) notes.push(`<b>Same email for two names in Ops Mapping</b> (skipped - fix the sheet): ${conflicts.map(c => _syncEsc(c.email + ' → ' + c.names.join(' / '))).join('; ')}`);
+  if (noEmail.size) notes.push(`<b>No email in Ops Mapping</b> (skipped): ${[...noEmail].map(_syncEsc).join(', ')}`);
+  if (!(opsMapping || []).length) notes.push('<b>Ops Mapping is empty or not loaded</b> - nothing to sync.');
+  const th = 'padding:8px 10px';
+  const total = add.length + renames.length;
+  _syncModal(`
+    <div style="padding:20px 24px 12px;border-bottom:1px solid #f1f5f9">
+      <div style="font-size:15px;font-weight:700;color:#0f172a">Sync users from Ops Mapping</div>
+      <div style="font-size:12.5px;color:#64748b;margin-top:4px">${total ? 'Matched by email. New people are added as <b>Job Owner</b>; existing accounts get their <b>name</b> updated to the Ops Mapping spelling (roles are never changed).' : 'Everyone in Ops Mapping with an email has an account with the same name - nothing to change.'}</div>
+    </div>
+    <div style="overflow:auto;padding:4px 14px">
+      ${add.length ? `<div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.06em;margin:12px 10px 4px">NEW USERS (${add.length})</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:#94a3b8;font-size:11px;letter-spacing:.06em"><th style="${th}">NAME</th><th style="${th}">EMAIL</th><th style="${th}">ROLE</th><th style="${th}">REPORTS TO</th></tr></thead><tbody>${addRows}</tbody></table>` : ''}
+      ${renames.length ? `<div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.06em;margin:16px 10px 4px">NAME UPDATES (${renames.length}) - ticked ones are applied</div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:#94a3b8;font-size:11px;letter-spacing:.06em"><th style="${th}"></th><th style="${th}">NAME NOW</th><th style="${th}">NEW NAME (OPS MAPPING)</th><th style="${th}">EMAIL</th><th style="${th}">ROLE</th></tr></thead><tbody>${renRows}</tbody></table>` : ''}
+      ${notes.map(n => `<div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin:10px">${n}</div>`).join('')}
+    </div>
+    <div id="syncUsersFooter" style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid #f1f5f9">
+      <button onclick="closeSyncUsers()" style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 16px;font-size:13px;background:#fff;cursor:pointer">${total ? 'Cancel' : 'Close'}</button>
+      ${total ? `<button onclick="runSyncUsers()" style="border:0;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;color:#fff;background:#2563eb;cursor:pointer">Apply changes</button>` : ''}
+    </div>`);
+}
+async function runSyncUsers() {
+  const list = window._syncCandidates || [];
+  const renames = (window._syncRenames || []).filter((r, i) => { const c = document.getElementById('syncRen' + i); return c && c.checked; });
+  const footer = document.getElementById('syncUsersFooter');
+  if (footer) footer.innerHTML = '<div style="font-size:13px;color:#64748b">Saving…</div>';
+  let created = 0, existed = 0, renamed = 0, failed = 0;
+  const now = new Date().toISOString();
+  const post = body => fetch(MONGO_API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(async r => ({ ok: r.ok, data: await r.json().catch(() => null) }));
+  for (const a of list) {
+    try {
+      // insert-only: an existing account is never touched by this write
+      const { ok, data } = await post({ action:'updateOne', collection:'users', filter:{ email: a.email },
+        update:{ $setOnInsert:{ name:a.name, email:a.email, role:a.role, phone:'', active:true,
+          reportingManager:a.reportingManager, zones:[], branches:[], createdAt:now, updatedAt:now, source:'ops-mapping-sync' } } });
+      if (!ok || !data || data.error) failed++;
+      else if (data.result && data.result.upsertedCount) created++;
+      else existed++;
+    } catch (e) { failed++; }
+  }
+  for (const r of renames) {
+    try {
+      // only the name changes (matched by email; the server's update would CREATE a record if the
+      // filter matched nothing, so the filter is the email alone - it exists, we just read it)
+      const { ok, data } = await post({ action:'updateOne', collection:'users', filter:{ email: r.email },
+        update:{ $set:{ name: r.to, updatedAt: now } } });
+      if (!ok || !data || data.error) failed++;
+      else if (data.result && data.result.matchedCount) renamed++;
+      else failed++;
+    } catch (e) { failed++; }
+  }
+  if (footer) footer.innerHTML = `<div style="font-size:13px;color:#0f172a;margin-right:auto">Added ${created} user${created === 1 ? '' : 's'}, renamed ${renamed}${existed ? ', ' + existed + ' already existed' : ''}${failed ? ', <span style="color:#b91c1c">' + failed + ' failed</span>' : ''}.</div>
+    <button onclick="closeSyncUsers()" style="border:0;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;color:#fff;background:#2563eb;cursor:pointer">Done</button>`;
+  loadAdminPanel(true);
 }
 
 // ── EDIT USER MODAL ───────────────────────────────────────────
@@ -6449,7 +6658,7 @@ async function saveEditUser() {
   });
   await refreshAllUsers();
   closeEditUser();
-  loadAdminPanel();
+  loadAdminPanel(true);
 }
 
 async function toggleActive(email, active) {
@@ -6457,7 +6666,7 @@ async function toggleActive(email, active) {
     body: JSON.stringify({ action:'updateOne', collection:'users', filter:{email}, update:{$set:{active}} })
   });
   await refreshAllUsers();
-  loadAdminPanel();
+  loadAdminPanel(true);
 }
 
 async function confirmDeleteUser(email) {
@@ -6466,7 +6675,7 @@ async function confirmDeleteUser(email) {
     body: JSON.stringify({ action:'deleteOne', collection:'users', filter:{email} })
   });
   await refreshAllUsers();
-  loadAdminPanel();
+  loadAdminPanel(true);
 }
 
 // ── SUMMARY PAGE ─────────────────────────────────────────────
@@ -6584,7 +6793,7 @@ function renderSummary() {
       const ck = etdEtaColKey(sh, view);
       if (!ck || totals[ck] === undefined) return;
       totals[ck]++;
-      if (sh.sum > 0) {
+      if (sh.sum > 0 && etdEtaPastCutoff(sh, sumField === 'unpostedCost' ? ETD_CUTOFF_DAYS.uc : ETD_CUTOFF_DAYS.ur)) {
         flags[ck]++;
         flagAmounts[ck] += sh.sum;
       }
@@ -7450,14 +7659,16 @@ async function saveImportedUsers() {
   // Show success briefly then close and reload
   setTimeout(() => {
     closeImportModal();
-    loadAdminPanel();
+    loadAdminPanel(true);
   }, 1200);
 }
 
 // ── TEAMS ORG CHART ──────────────────────────────────────────
-function renderTeams() {
-  // Make sure admin users are loaded
-  if (window._adminUsers && window._adminUsers.length) {
+function renderTeams(force) {
+  if (!force && window._teamsRendered) return;
+  window._teamsRendered = true;
+  // Make sure admin users are loaded (Refresh reloads them)
+  if (!force && window._adminUsers && window._adminUsers.length) {
     _doRenderTeams();
   } else {
     // Load users first, then render
@@ -7484,7 +7695,7 @@ function _doRenderTeams() {
     <div style="padding:14px 20px 20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.08em">👥 TEAMS</span>
-        <button class="ec-btn" onclick="renderTeams()" title="Refresh" style="display:inline-flex;align-items:center;gap:5px">
+        <button class="ec-btn" onclick="renderTeams(true)" title="Refresh" style="display:inline-flex;align-items:center;gap:5px">
           <i class="ti ti-refresh" style="font-size:12px"></i> Refresh
         </button>
       </div>
