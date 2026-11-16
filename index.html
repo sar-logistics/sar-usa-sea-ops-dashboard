@@ -3295,7 +3295,9 @@ function getDateRange(pageId) {
     const fromState = pickerState['dp-cfrom-' + pageId];
     const toState   = pickerState['dp-cto-' + pageId];
     if (fromState && fromState.selected && toState && toState.selected) {
-      const fs = fromState.selected, ts = toState.selected;
+      let fs = fromState.selected, ts = toState.selected;
+      // From later than To: swap them instead of showing an empty page
+      if (new Date(fs.year, fs.month, fs.day) > new Date(ts.year, ts.month, ts.day)) { const t = fs; fs = ts; ts = t; }
       from  = new Date(fs.year, fs.month, fs.day);
       to    = new Date(ts.year, ts.month, ts.day, 23, 59, 59);
       label = fs.day + ' ' + MONTHS[fs.month] + ' ' + fs.year + ' → ' + ts.day + ' ' + MONTHS[ts.month] + ' ' + ts.year;
@@ -4603,6 +4605,34 @@ function applyDropdownFilters(data, pageId) {
 }
 
 // ── REFRESH ──────────────────────────────────────────────────
+// ── Prepare the USA records as they arrive (page load and Refresh) ──
+// 1. Dates come from the sheet as UTC timestamps of India midnight (2026-05-29T18:30:00Z is
+//    30 May in India). A browser in the US read that as 29 May, so US and India users saw
+//    different days - and around month ends different months and counts. Every such timestamp
+//    becomes the same India wall-clock time without a zone ("2026-05-30T00:00:00"), which every
+//    browser reads as that same calendar day.
+// 2. The sheet's money columns carry their formula letters (recognizedRevenueB, recognizedCostF,
+//    actualProfitJ=cG); the job drill-downs read recognizedRevenue / recognizedCost / actualProfit,
+//    which never existed, so those columns were always empty.
+const IST_OFFSET_MS = 330 * 60000;
+const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+function toIstLocal(v) {
+  const t = Date.parse(v);
+  return isNaN(t) ? v : new Date(t + IST_OFFSET_MS).toISOString().slice(0, 19);
+}
+function prepUsaRecords(rows) {
+  (rows || []).forEach(r => {
+    for (const k in r) {
+      const v = r[k];
+      if (typeof v === 'string' && ISO_UTC_RE.test(v) && !/weight/i.test(k)) r[k] = toIstLocal(v);
+    }
+    if (r.recognizedRevenue === undefined && r.recognizedRevenueB !== undefined) r.recognizedRevenue = r.recognizedRevenueB;
+    if (r.recognizedCost === undefined && r.recognizedCostF !== undefined) r.recognizedCost = r.recognizedCostF;
+    if (r.actualProfit === undefined && r['actualProfitJ=cG'] !== undefined) r.actualProfit = r['actualProfitJ=cG'];
+  });
+  return rows || [];
+}
+
 // Short message at the bottom of the screen
 function showToast(msg, sub) {
   let t = document.getElementById('appToast');
@@ -4626,7 +4656,7 @@ async function refreshData(pageId) {
     const data = await resp.json().catch(() => null);
     // A server error must not wipe the page (it showed 0 jobs): keep the data already loaded
     if (!resp.ok || !data || !Array.isArray(data.records)) throw new Error('refresh failed: HTTP ' + resp.status + (data && data.error ? ' - ' + data.error : ''));
-    rawSRR    = data.records    || [];
+    rawSRR    = prepUsaRecords(data.records || []);
     updateRateLabel();
     rawJPA    = [];
     allUsers  = data.users      || [];
@@ -4634,7 +4664,7 @@ async function refreshData(pageId) {
     allJPA   = [];
     // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
     // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
-    rawWIP = data.etdEta || [];
+    rawWIP = prepUsaRecords(data.etdEta || []);
     opsMapping = data.opsMapping || [];
     dataSyncAt = data.lastSyncAt || dataSyncAt;
     applyRLS();
@@ -5493,7 +5523,7 @@ async function loadData() {
         } catch(e) { console.error('[loadData] Silent re-fetch error:', e); }
       }, 45000);
     }
-    rawSRR     = data.records    || [];
+    rawSRR     = prepUsaRecords(data.records || []);
     rawJPA     = [];
     allUsers   = data.users      || [];
     // Filter by current direction - General (currentLob === 'gen') has no
@@ -5502,7 +5532,7 @@ async function loadData() {
     allJPA = [...rawJPA];
     // ETD/ETA charge-line data (Unposted Cost/Unbilled Revenue) comes bundled
     // in the same batch response - no separate endpoint for USA (unlike ID/TH's /api/wip)
-    rawWIP = data.etdEta || [];
+    rawWIP = prepUsaRecords(data.etdEta || []);
     opsMapping = data.opsMapping || [];
     dataSyncAt = data.lastSyncAt || dataSyncAt;
     console.log('[loadData] ETD/ETA records:', rawWIP.length);
