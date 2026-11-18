@@ -4482,22 +4482,20 @@ function toggleMsItem(id, value, isAll) {
   const allVals = [];
   if (dd) dd.querySelectorAll('.ms-item:not(.all-item)').forEach(el => { if (el.dataset.val) allVals.push(el.dataset.val); });
 
-  // Never end on "nothing selected" (it emptied the table with "No data for this period"):
-  // All always means everyone, and unticking the last selected value goes back to All.
   if (isAll) {
-    msState[id] = new Set();
+    msState[id] = (s instanceof Set && s.size === 0) ? null : new Set();
   } else {
     if (s === null) {
       msState[id] = new Set([value]);
     } else if (s instanceof Set && s.size === 0) {
       const newSet = new Set(allVals);
       newSet.delete(value);
-      msState[id] = newSet.size === 0 ? new Set() : newSet;
+      msState[id] = newSet.size === 0 ? null : newSet;
     } else {
       const newSet = new Set(s);
       if (newSet.has(value)) newSet.delete(value);
       else newSet.add(value);
-      msState[id] = (newSet.size === 0 || newSet.size >= allVals.length) ? new Set() : newSet;
+      msState[id] = newSet.size === 0 ? null : (newSet.size >= allVals.length ? new Set() : newSet);
     }
   }
 
