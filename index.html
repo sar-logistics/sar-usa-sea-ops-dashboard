@@ -6062,7 +6062,7 @@ async function loadData() {
     if (!resp.ok) throw new Error('Batch API returned ' + resp.status);
     const data = await resp.json().catch(() => null);
     // A server error must not wipe the page (it showed "All clear!" / 0 jobs): keep the old data
-    if (!resp.ok || !data || !Array.isArray(data.jobs)) throw new Error('refresh failed: HTTP ' + resp.status + (data && data.error ? ' - ' + data.error : ''));
+    if (!resp.ok || !data || !Array.isArray(data.records)) throw new Error('refresh failed: HTTP ' + resp.status + (data && data.error ? ' - ' + data.error : ''));
     const cacheStatus = resp.headers.get('X-Cache');
     console.log('[loadData] Cache:', cacheStatus, '| Age:', resp.headers.get('X-Cache-Age'));
 
