@@ -190,6 +190,7 @@ thead th{transition:box-shadow .2s}
 tr.br-row td,tr.jo-row td{transition:background-color .2s,box-shadow .2s}
 tr.br-row:hover td,tr.jo-row:hover td{background-color:#EEF4FF!important}
 tr.br-row:hover td:first-child,tr.jo-row:hover td:first-child{box-shadow:inset 3px 0 0 #2563EB}
+.tbl-wrap td:has(> span[onclick]){cursor:pointer}
 td.heat{position:relative}
 td.heat>*{position:relative}
 tr.jo-row td.heat:hover,tr.br-row td.heat:hover{box-shadow:inset 0 0 0 2px rgba(37,99,235,.35)}
@@ -385,8 +386,7 @@ body.sidebar-hidden .sidebar-reveal{opacity:1;pointer-events:all}
 @keyframes badgePop{0%{transform:scale(.5)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 .nav-badge.pop{animation:badgePop .4s cubic-bezier(.34,1.56,.64,1)}
 .nav-badge.hidden{display:none!important}
-.nav-item.active .nav-badge:not(.hidden){display:inline-flex!important}
-#sec-summary-body .nav-item .nav-badge:not(.hidden){display:inline-flex!important}
+/* Sidebar count badges are switched off (no rule shows .nav-badge any more) */
 .nav-badge.hidden{display:none!important}
 /* Performance Metrics */
 .perf-bar-wrap{display:flex;align-items:center;gap:6px;width:100%}
@@ -902,6 +902,8 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
 .cs-wrap{position:relative;display:inline-block;width:100%}
 .cs-wrap select{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 .cs-trigger{display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;width:100%;transition:transform .1s}
+.cs-trigger,.cs-trigger *{white-space:nowrap}
+#tb-filter-row .cs-wrap:has(select[id^="view-"]){min-width:150px}
 .cs-trigger:active{transform:scale(.98)}
 .cs-trigger .cs-arrow{font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0;transition:transform .15s}
 .cs-trigger.open .cs-arrow{transform:rotate(180deg)}
@@ -1456,6 +1458,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <span class="filter-label">Report View</span>
           <select class="filter-select" id="view-summary" onchange="onViewChange('summary')" style="min-width:150px">
             <option value="monthly">Monthly View</option>
+            <option value="fortnightly">Fortnightly View</option>
             <option value="weekly">Weekly View</option>
             <option value="quarterly">Quarterly View</option>
             <option value="yearly">Yearly View</option>
@@ -1526,6 +1529,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <span class="filter-label">Report View</span>
           <select class="filter-select" id="view-open-jobs" onchange="onViewChange('open-jobs')">
             <option value="monthly">Monthly View</option>
+            <option value="fortnightly">Fortnightly View</option>
             <option value="weekly">Weekly View</option>
             <option value="quarterly">Quarterly View</option>
             <option value="yearly">Yearly View</option>
@@ -1628,6 +1632,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <span class="filter-label">Report View</span>
           <select class="filter-select" id="view-total-jobs" onchange="onViewChange('total-jobs')">
             <option value="monthly">Monthly View</option>
+            <option value="fortnightly">Fortnightly View</option>
             <option value="weekly">Weekly View</option>
             <option value="quarterly">Quarterly View</option>
             <option value="yearly">Yearly View</option>
@@ -1712,6 +1717,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <span class="filter-label">Report View</span>
           <select class="filter-select" id="view-unbilled-rev" onchange="onViewChange('unbilled-rev')">
             <option value="monthly">Monthly View</option>
+            <option value="fortnightly">Fortnightly View</option>
             <option value="weekly">Weekly View</option>
             <option value="quarterly">Quarterly View</option>
             <option value="yearly">Yearly View</option>
@@ -1820,6 +1826,7 @@ tr:hover td:first-child,tr:hover td.col-grand{background:#f8fbff}
           <span class="filter-label">Report View</span>
           <select class="filter-select" id="view-unposted-cost" onchange="onViewChange('unposted-cost')">
             <option value="monthly">Monthly View</option>
+            <option value="fortnightly">Fortnightly View</option>
             <option value="weekly">Weekly View</option>
             <option value="quarterly">Quarterly View</option>
             <option value="yearly">Yearly View</option>
@@ -2106,7 +2113,9 @@ const BATCH_API = '/api/mongo-batch';
 const WIP_API   = '/api/wip';
 
 // ── PRE-CALCULATE MAIN METRICS BADGES ───────────────────────
-function updateMainMetricsBadges() {
+// skipPage: the page that is about to be drawn properly by renderPage() - redrawing it here
+// first would drop its heat-map shading and collapse the rows the user had open
+function updateMainMetricsBadges(skipPage) {
   const j = allJPA || [];
   const s = allSRR || [];
   if (!j.length && !s.length) return;
@@ -3024,7 +3033,8 @@ function handleAuth() {
   );
 }
 
-async function verifyUser(info) {
+async function verifyUser(info, opts) {
+  opts = opts || {};
   try {
     const email = (info.email || '').toLowerCase().trim();
     const resp = await fetch(MONGO_API, {
@@ -3036,11 +3046,13 @@ async function verifyUser(info) {
     const user = data.document;
 
     if (!user) {
+      clearSession();
       showSigninError('Access denied. ' + email + ' is not authorised. Contact your administrator.');
       setSigninBtnDisplay('flex');
       return;
     }
 
+    saveSession({ email, name: info.name || user.name, picture: info.picture }, !!opts.restoring);
     currentUser    = { email, name: info.name || user.name, picture: info.picture };
     currentRole    = user.role || 'Viewer';
     currentUserDoc = user;
@@ -3081,6 +3093,44 @@ function showSigninError(msg) {
   err.style.display = 'block';
 }
 
+// ── SIGN-IN SESSION ──────────────────────────────────────────
+// The signed-in user is remembered in this browser for 12 hours (or until they sign out),
+// so a reload no longer logs them out. On every load verifyUser() checks the account in the
+// database again: a user who was removed or made inactive is sent back to the sign-in page.
+const SESSION_KEY = 'sar_usa_ops_session';
+function saveSession(info, keepExpiry) {
+  try {
+    const old = loadSession();
+    const exp = keepExpiry && old ? old.exp : Date.now() + SESSION_DURATION;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: info.email, name: info.name, picture: info.picture, exp }));
+  } catch (e) {}
+}
+function loadSession() {
+  try {
+    const v = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    return v && v.email && v.exp > Date.now() ? v : null;
+  } catch (e) { return null; }
+}
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+function sessionLeftMs() { const v = loadSession(); return v ? v.exp - Date.now() : SESSION_DURATION; }
+
+// Restore a remembered session on page load (not for a Hub sign-in, which brings its own user)
+(function restoreSession() {
+  let hub = null; try { hub = sessionStorage.getItem('sar_hub_sso_user'); } catch (e) {}
+  if (hub) return;
+  const sess = loadSession();
+  if (!sess) return;
+  const box = document.getElementById('googleBtnContainer');
+  document.getElementById('signinLoading').style.display = 'block';
+  if (box) box.style.visibility = 'hidden';
+  // after the whole script has run (values further down must exist first)
+  setTimeout(async () => {
+    try {
+      if (!currentUser) await verifyUser({ email: sess.email, name: sess.name, picture: sess.picture }, { restoring: true });
+    } finally { if (box) box.style.visibility = ''; }
+  }, 0);
+})();
+
 // ── SSO HANDOFF (SAR Systems Hub) ────────────────────────────
 // Only runs when /api/sso-verify has just written this key to sessionStorage.
 // A user who signs in directly (typing this dashboard's URL) never has this
@@ -3103,6 +3153,7 @@ function showSigninError(msg) {
     currentUser    = { email, name: user.name || email, picture: user.picture };
     currentRole    = user.role || 'Viewer';
     currentUserDoc = user;
+    saveSession(currentUser);
 
     document.getElementById('signInPage').style.display = 'none';
     document.getElementById('appShell').style.display = 'flex';
@@ -3120,7 +3171,8 @@ function showSigninError(msg) {
 })();
 
 function signOut() {
-  google.accounts.id.disableAutoSelect();
+  clearSession();
+  try { google.accounts.id.disableAutoSelect(); } catch (e) {}
   currentUser = null; currentRole = null; allSRR = [];
   document.getElementById('appShell').style.display = 'none';
   document.getElementById('signInPage').style.display = 'flex';
@@ -3189,7 +3241,7 @@ function syncUniversalFilters(oldSuffix, newSuffix) {
   if (oldView && newView) newView.value = viewVal;
   ['monthly','weekly','quarterly','yearly','custom'].forEach(v => {
     const el = document.getElementById('fc-' + v + '-' + newSuffix);
-    if (el) el.style.display = (v === viewVal) ? 'flex' : 'none';
+    if (el) el.style.display = (v === pickerViewOf(viewVal)) ? 'flex' : 'none';
   });
 
   // Quarter selector (Q1-Q4)
@@ -3221,9 +3273,17 @@ function setPage(pageId, title, group, el) {
   document.querySelectorAll('.nav-item,.sys-item,.reports-label').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
   clearSidebarSearch();
-  // Keep System section expanded when a sys-item is active
+  // System section opens on hover only (it used to stay open after visiting a System page)
   const sysSection = document.querySelector('.sys-section');
-  if (sysSection) sysSection.classList.toggle('expanded', group === 'System');
+  if (sysSection) sysSection.classList.remove('expanded');
+  // On the home screen (no Sea Export / Import picked yet) every page is hidden behind the
+  // home illustration, so a System page switched invisibly and looked unclickable: show it
+  if (group === 'System') {
+    const home = document.getElementById('sk-lob-placeholder');
+    const pg = document.getElementById('page-' + pageId);
+    if (pg && pg.style.display === 'none') pg.style.display = '';   // the .active class shows it
+    if (home) home.classList.remove('visible', 'fading-out');
+  }
 
   // Move active filter bar to topbar — restore previous one first
   const filterRow = document.getElementById('tb-filter-row');
@@ -3458,12 +3518,15 @@ function selectDay(id, day, yearOverride, monthOverride) {
 }
 
 // ── DATE VIEW ────────────────────────────────────────────────
+// Fortnightly has no picker of its own - it uses Weekly's single Month picker (same as Air Ops)
+function pickerViewOf(view) { return view === 'fortnightly' ? 'weekly' : view; }
+
 function onViewChange(pageId) {
   const view = document.getElementById('view-' + pageId).value;
   const views = ['monthly','weekly','quarterly','yearly','custom'];
   views.forEach(v => {
     const el = document.getElementById('fc-' + v + '-' + pageId);
-    if (el) el.style.display = (v === view) ? 'flex' : 'none';
+    if (el) el.style.display = (v === pickerViewOf(view)) ? 'flex' : 'none';
   });
   if (view !== 'custom') renderPage(pageId);
 }
@@ -3501,6 +3564,14 @@ function getDateRange(pageId) {
         label = 'Jan ' + now.getFullYear() + ' → ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear();
       }
     }
+  } else if (view === 'fortnightly') {
+    // One month (the Month picker), split into 1-15 and 16-end in getColumns
+    const wkState = pickerState['mp-wk-' + pageId];
+    const yr = wkState && wkState.selected ? wkState.selected.year  : now.getFullYear();
+    const mo = wkState && wkState.selected ? wkState.selected.month : now.getMonth();
+    from  = new Date(yr, mo, 1);
+    to    = new Date(yr, mo + 1, 0, 23, 59, 59);
+    label = MONTHS[mo] + ' ' + yr;
   } else if (view === 'weekly') {
     const wkState = pickerState['mp-wk-' + pageId];
     let yr, mo;
@@ -3684,6 +3755,17 @@ function getColumns(pageId) {
     for (let cy = cyStart; cy <= cyEnd; cy++) {
       cols.push({ key: 'cy-' + cy, label: 'CY ' + cy });
     }
+  } else if (view === 'fortnightly') {
+    // Two columns per month: 1-15 and 16-end
+    let d = new Date(from.getFullYear(), from.getMonth(), 1);
+    while (d <= to) {
+      const y = d.getFullYear(), m = d.getMonth(), base = y + '-' + String(m + 1).padStart(2, '0');
+      const mon = d.toLocaleString('default', { month: 'short' }) + " '" + String(y).slice(2);
+      const last = new Date(y, m + 1, 0).getDate();
+      cols.push({ key: base + '-1', label: '1–15 ' + mon });
+      cols.push({ key: base + '-2', label: '16–' + last + ' ' + mon });
+      d.setMonth(d.getMonth() + 1);
+    }
   } else if (view === 'custom') {
     cols.push({ key: 'custom', label: label || 'Custom Range', single: true });
   } else {
@@ -3723,6 +3805,7 @@ function getColKey(row, view) {
     d = raw ? new Date(raw) : null;
   }
   if (!d) return null;
+  if (view === 'fortnightly') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + (d.getDate() <= 15 ? '-1' : '-2');
   if (view === 'weekly') {
     // Normalize to local midnight first — if the raw date carries a time-of-day
     // component, computing the week-start off it can push the ISO string into
@@ -3742,6 +3825,7 @@ function getColKey(row, view) {
     return 'q' + qVal + '-cy-' + d.getFullYear();
   }
   if (view === 'custom') return 'custom';
+  if (view === 'fortnightly') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + (d.getDate() <= 15 ? '-1' : '-2');
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
 }
 
@@ -3858,6 +3942,9 @@ function fitTableHeight() {
 }
 window.addEventListener('resize', fitTableHeight);
 
+// The page on screen (its id without the 'page-' prefix), used by the background reload
+function getActivePage() { const p = document.querySelector('.page.active'); return p ? p.id.replace(/^page-/, '') : 'summary'; }
+
 function renderPage(pageId) {
   // Every redraw rebuilds the table, so remember which rows were open and
   // reopen them afterwards (view switch, filters, refresh, coming back)
@@ -3923,6 +4010,15 @@ function updateSky() {
   el.title = { dawn: 'Good morning', day: 'Good day', dusk: 'Good evening', night: 'Good night' }[mode];
 }
 updateSky(); setInterval(updateSky, 5 * 60 * 1000);
+
+// Report tables: a click anywhere in a number cell opens its drill-down, not only on the
+// number itself (the cell already shows a pointer; only the number was clickable)
+document.addEventListener('click', e => {
+  if (e.target.closest('[onclick]')) return;            // the number (or a clickable cell) handled it
+  const td = e.target.closest('.tbl-wrap td');
+  const num = td && td.querySelector(':scope > span[onclick]');
+  if (num) num.click();
+});
 
 // Thin glowing bar along the top while data loads or refreshes
 let _progT = null, _progN = 0;
@@ -5064,6 +5160,9 @@ function populateFilters(pageId, data) {
   // UI for it was removed from the Add Filters panel entirely
   const branches = [...new Set(data.map(r => r.jobBranch || r.branch || r.location).filter(Boolean))].sort();
   const owners   = [...new Set(data.map(r => r.jobOwner).filter(Boolean))].sort();
+  // Jobs with no Branch / Job Owner get their own option, so unticking one name no longer hides them as well
+  if (data.some(r => !(r.jobBranch || r.branch || r.location)))   branches.push('(No Branch)');
+  if (data.some(r => !r.jobOwner)) owners.push('(Unknown)');
 
   buildMsDropdown('branch-' + pageId, branches);
   buildMsDropdown('owner-'  + pageId, owners);
@@ -5081,8 +5180,8 @@ function applyDropdownFilters(data, pageId) {
   if (ownerState  === null) return [];
 
   return data.filter(r => {
-    if (!branchAll && !branchState.has(r.jobBranch || r.branch || r.location || '')) return false;
-    if (!ownerAll  && !ownerState.has(r.jobOwner || '')) return false;
+    if (!branchAll && !branchState.has(r.jobBranch || r.branch || r.location || '(No Branch)')) return false;
+    if (!ownerAll  && !ownerState.has(r.jobOwner || '(Unknown)')) return false;
     return true;
   });
 }
@@ -5893,7 +5992,10 @@ function renderDvBody() {
   // via specificity.
   tbody.innerHTML = dvFiltered.map((r, i) => {
     const prev = dvFiltered[i - 1];
-    const isNewShipment = !prev || r.shipmentId !== prev.shipmentId;
+    // Sorted by another column a shipment's lines are no longer next to each other,
+    // so the separators would be noise - show them only in the natural order
+    const sortedAway = dvSort && dvSort.key && dvSort.key !== 'shipmentId' && dvSort.key !== 'jobNo';
+    const isNewShipment = !sortedAway && (!prev || r.shipmentId !== prev.shipmentId);
     const extraBorder = isNewShipment ? 'border-top:1px dashed #94a3b8;' : '';
     return `<tr>${dvCols.map(c => {
       const align = (c.num || c.pct) ? 'text-align:right;' : '';
@@ -5958,7 +6060,9 @@ async function loadData() {
       method: 'GET', headers: { 'Cache-Control': 'no-cache, no-store' }
     });
     if (!resp.ok) throw new Error('Batch API returned ' + resp.status);
-    const data = await resp.json();
+    const data = await resp.json().catch(() => null);
+    // A server error must not wipe the page (it showed "All clear!" / 0 jobs): keep the old data
+    if (!resp.ok || !data || !Array.isArray(data.jobs)) throw new Error('refresh failed: HTTP ' + resp.status + (data && data.error ? ' - ' + data.error : ''));
     const cacheStatus = resp.headers.get('X-Cache');
     console.log('[loadData] Cache:', cacheStatus, '| Age:', resp.headers.get('X-Cache-Age'));
 
@@ -5978,13 +6082,13 @@ async function loadData() {
           if (!r2.ok) return;
           const d2 = await r2.json();
           const s2 = r2.headers.get('X-Cache');
-          if (s2 === 'HIT') {
+          if (s2 === 'HIT' && Array.isArray(d2.records)) {
             // Full cache ready — update data, re-render only the currently visible page
             rawSRR = d2.records || []; rawJPA = []; opsMapping = d2.opsMapping || opsMapping; dataSyncAt = d2.lastSyncAt || dataSyncAt;
             allSRR = rawSRR.filter(r => (!currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r)); allJPA = [...rawJPA];
             applyRLS();
+            updateMainMetricsBadges(getActivePage());  // other pages first, then the visible page (shading + open rows kept)
             try { renderPage(getActivePage()); } catch(e) {}
-            updateMainMetricsBadges();
             markDataUpdated();
             console.log('[loadData] Silent re-fetch complete — SRR:', rawSRR.length);
           } else {
@@ -5998,11 +6102,12 @@ async function loadData() {
               });
               if (!r3.ok) return;
               const d3 = await r3.json();
+              if (!Array.isArray(d3.records)) return;  // keep what is on screen
               rawSRR = d3.records || []; rawJPA = []; opsMapping = d3.opsMapping || opsMapping; dataSyncAt = d3.lastSyncAt || dataSyncAt;
               allSRR = rawSRR.filter(r => (!currentDirection || (r.direction||'').toLowerCase() === currentDirection.toLowerCase()) && matchesCurrentLob(r)); allJPA = [...rawJPA];
               applyRLS();
+              updateMainMetricsBadges(getActivePage());
               try { renderPage(getActivePage()); } catch(e) {}
-              updateMainMetricsBadges();
             markDataUpdated();
               console.log('[loadData] Final re-fetch — SRR:', rawSRR.length);
             }, 30000);
@@ -6309,8 +6414,10 @@ let _logoutWarningTimer = null;
 function startSessionTimer() {
   clearTimeout(_sessionTimer);
   clearTimeout(_logoutWarningTimer);
-  _logoutWarningTimer = setTimeout(() => { showLogoutWarning(); }, SESSION_DURATION - LOGOUT_WARNING);
-  _sessionTimer       = setTimeout(() => { hideLogoutWarning(); signOut(); }, SESSION_DURATION);
+  const left = sessionLeftMs();   // a restored session keeps its original 12-hour end
+  if (left <= 0) { signOut(); return; }
+  _logoutWarningTimer = setTimeout(() => { showLogoutWarning(); }, Math.max(0, left - LOGOUT_WARNING));
+  _sessionTimer       = setTimeout(() => { hideLogoutWarning(); signOut(); }, left);
 }
 
 function showLogoutWarning() {
@@ -6340,6 +6447,7 @@ function hideLogoutWarning() {
 
 function extendSession() {
   hideLogoutWarning();
+  if (currentUser) saveSession(currentUser);  // a fresh 12 hours
   startSessionTimer();
 }
 
@@ -7432,7 +7540,7 @@ function renderSummary() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
           <div style="font-size:13px;font-weight:800;color:#0f1f2e;letter-spacing:.02em">CHECKPOINT LOG</div>
           <button onclick="toggleSumSort()" title="Toggle sort order" style="font-size:11px;font-weight:700;padding:5px 11px;border:1px solid var(--border);border-radius:var(--r-sm);background:#fff;color:var(--accent);cursor:pointer;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:4px;transition:background .15s ease,box-shadow .15s ease">
-            <span>${window._sumSort==="high"?"↓ Highest":"↑ Lowest"}</span>
+            <span>${(window._sumSort || 'high')==="high"?"↓ Highest":"↑ Lowest"}</span>
           </button>
         </div>
         <div style="font-size:11px;color:#6a8aaa;margin-bottom:10px">All ${SUMMARY_REPORTS.length} checkpoints · click any row for monthly detail</div>
@@ -7690,7 +7798,7 @@ function renderSummary() {
 }
 
 function buildSummaryChart(cols, totals, flags, report, view) {
-  const isWeekly    = view === 'weekly';
+  const isWeekly    = view === 'weekly' || view === 'fortnightly';  // longer labels, more rows
   const isQuarterly = view === 'quarterly';
   const isYearly    = view === 'yearly';
   const isCustom    = view === 'custom';
@@ -7739,7 +7847,7 @@ function buildSummaryChart(cols, totals, flags, report, view) {
     // Build Y-axis label — short for display, full for tooltip
     let line1 = c.label, line2 = '', tooltipLabel = c.label;
 
-    if (isWeekly) {
+    if (view === 'weekly') {  // fortnightly keeps its own "1–15 Apr '26" label
       try {
         const d = new Date(c.key);
         if (!isNaN(d)) {
